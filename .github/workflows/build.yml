@@ -30,30 +30,37 @@ jobs:
 
           cp index.html app/src/main/assets/index.html
 
-          echo "include ':app'" > settings.gradle
-
-          cat << 'EOF' > build.gradle
-          buildscript {
+          cat << 'EOF' > settings.gradle
+          pluginManagement {
               repositories {
                   google()
                   mavenCentral()
-              }
-
-              dependencies {
-                  classpath 'com.android.tools.build:gradle:8.2.2'
+                  gradlePluginPortal()
               }
           }
 
-          allprojects {
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
               repositories {
                   google()
                   mavenCentral()
               }
+          }
+
+          rootProject.name = "WatchToEarn"
+          include ':app'
+          EOF
+
+          cat << 'EOF' > build.gradle
+          plugins {
+              id 'com.android.application' version '8.2.2' apply false
           }
           EOF
 
           cat << 'EOF' > app/build.gradle
-          apply plugin: 'com.android.application'
+          plugins {
+              id 'com.android.application'
+          }
 
           android {
               namespace 'com.watchtoearn.app'
@@ -67,6 +74,11 @@ jobs:
                   versionName "1.0"
               }
 
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+
               buildTypes {
                   release {
                       minifyEnabled false
@@ -77,6 +89,7 @@ jobs:
 
           dependencies {
               implementation 'com.google.android.gms:play-services-ads:25.5.0'
+              implementation 'androidx.annotation:annotation:1.9.1'
           }
           EOF
 
@@ -121,6 +134,7 @@ jobs:
           import android.content.Intent;
           import android.net.Uri;
           import android.os.Bundle;
+          import android.view.Gravity;
           import android.webkit.JavascriptInterface;
           import android.webkit.WebChromeClient;
           import android.webkit.WebSettings;
@@ -130,17 +144,16 @@ jobs:
 
           import androidx.annotation.NonNull;
 
-          import com.google.android.gms.ads.AdRequest;
-          import com.google.android.gms.ads.AdView;
-          import com.google.android.gms.ads.AdSize;
-          import com.google.android.gms.ads.MobileAds;
-          import com.google.android.gms.ads.LoadAdError;
-          import com.google.android.gms.ads.FullScreenContentCallback;
           import com.google.android.gms.ads.AdError;
+          import com.google.android.gms.ads.AdRequest;
+          import com.google.android.gms.ads.AdSize;
+          import com.google.android.gms.ads.AdView;
+          import com.google.android.gms.ads.FullScreenContentCallback;
+          import com.google.android.gms.ads.LoadAdError;
+          import com.google.android.gms.ads.MobileAds;
           import com.google.android.gms.ads.rewarded.RewardItem;
           import com.google.android.gms.ads.rewarded.RewardedAd;
           import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
-          import com.google.android.gms.ads.OnUserEarnedRewardListener;
 
           public class MainActivity extends Activity {
 
@@ -148,32 +161,11 @@ jobs:
               private AdView bannerAd;
               private RewardedAd rewardedAd;
 
-              /*
-               * Google TEST Rewarded Ad ID.
-               * Use this while testing.
-               *
-               * Your LIVE Rewarded ID:
-               * ca-app-pub-5150845800087406/3645352026
-               */
-              private static final String TEST_REWARDED_ID =
-                      "ca-app-pub-3940256099942544/5224354917";
-
-              /*
-               * Your LIVE Banner ID:
-               * ca-app-pub-5150845800087406/8514535326
-               *
-               * Testing ID used here.
-               */
               private static final String TEST_BANNER_ID =
                       "ca-app-pub-3940256099942544/6300978111";
 
-              /*
-               * Your LIVE Interstitial ID:
-               * ca-app-pub-5150845800087406/1725676409
-               */
-              private static final String TEST_INTERSTITIAL_ID =
-                      "ca-app-pub-3940256099942544/1033173712";
-
+              private static final String TEST_REWARDED_ID =
+                      "ca-app-pub-3940256099942544/5224354917";
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
@@ -208,8 +200,10 @@ jobs:
 
                               try {
                                   Intent intent =
-                                          new Intent(Intent.ACTION_VIEW,
-                                                  Uri.parse(url));
+                                          new Intent(
+                                                  Intent.ACTION_VIEW,
+                                                  Uri.parse(url)
+                                          );
 
                                   startActivity(intent);
                                   return true;
@@ -223,12 +217,6 @@ jobs:
                       }
                   });
 
-                  /*
-                   * JavaScript bridge.
-                   * HTML can call:
-                   *
-                   * AndroidAd.showRewarded()
-                   */
                   webView.addJavascriptInterface(
                           new AdBridge(),
                           "AndroidAd"
@@ -238,18 +226,14 @@ jobs:
                           "file:///android_asset/index.html"
                   );
 
-                  root.addView(
-                          webView,
+                  FrameLayout.LayoutParams webParams =
                           new FrameLayout.LayoutParams(
                                   FrameLayout.LayoutParams.MATCH_PARENT,
                                   FrameLayout.LayoutParams.MATCH_PARENT
-                          )
-                  );
+                          );
 
+                  root.addView(webView, webParams);
 
-                  /*
-                   * Banner Ad
-                   */
                   bannerAd = new AdView(this);
 
                   bannerAd.setAdSize(AdSize.BANNER);
@@ -260,29 +244,19 @@ jobs:
 
                   bannerAd.loadAd(bannerRequest);
 
-
                   FrameLayout.LayoutParams bannerParams =
                           new FrameLayout.LayoutParams(
                                   FrameLayout.LayoutParams.MATCH_PARENT,
                                   FrameLayout.LayoutParams.WRAP_CONTENT
                           );
 
-                  bannerParams.gravity =
-                          android.view.Gravity.BOTTOM;
+                  bannerParams.gravity = Gravity.BOTTOM;
 
-                  root.addView(
-                          bannerAd,
-                          bannerParams
-                  );
-
+                  root.addView(bannerAd, bannerParams);
 
                   setContentView(root);
               }
 
-
-              /*
-               * Load Rewarded Ad
-               */
               private void loadRewardedAd() {
 
                   AdRequest adRequest =
@@ -320,7 +294,6 @@ jobs:
                                   );
                               }
 
-
                               @Override
                               public void onAdFailedToLoad(
                                       @NonNull LoadAdError loadAdError) {
@@ -331,10 +304,6 @@ jobs:
                   );
               }
 
-
-              /*
-               * JavaScript → Native AdMob bridge
-               */
               public class AdBridge {
 
                   @JavascriptInterface
@@ -346,44 +315,25 @@ jobs:
 
                               rewardedAd.show(
                                       MainActivity.this,
-                                      new OnUserEarnedRewardListener() {
+                                      rewardItem -> {
 
-                                          @Override
-                                          public void onUserEarnedReward(
-                                                  @NonNull RewardItem rewardItem) {
+                                          webView.post(() -> {
 
-                                              /*
-                                               * Reward callback.
-                                               *
-                                               * Later we will connect this
-                                               * callback to your 10 coin
-                                               * JavaScript reward system.
-                                               */
+                                              webView.evaluateJavascript(
+                                                      "if(window.adMobRewardEarned){window.adMobRewardEarned();}",
+                                                      null
+                                              );
 
-                                              webView.post(() -> {
-
-                                                  webView.evaluateJavascript(
-                                                          "window.adMobRewardEarned && window.adMobRewardEarned();",
-                                                          null
-                                                  );
-
-                                              });
-                                          }
+                                          });
                                       }
                               );
 
                           } else {
-
-                              /*
-                               * Ad is not ready.
-                               * Load again.
-                               */
                               loadRewardedAd();
                           }
                       });
                   }
               }
-
 
               @Override
               protected void onDestroy() {
@@ -398,7 +348,6 @@ jobs:
 
                   super.onDestroy();
               }
-
 
               @Override
               public void onBackPressed() {
