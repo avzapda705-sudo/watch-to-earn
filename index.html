@@ -6,7 +6,7 @@
   <title>Watch to Earn</title>
   <style>
     *{box-sizing:border-box}
-    body{ margin:0; font-family:Arial,sans-serif; background:#f3f5fa; color:#222; padding-bottom:120px }
+    body{ margin:0; font-family:Arial,sans-serif; background:#f3f5fa; color:#222; padding-bottom:85px }
     .hero{ background:linear-gradient(135deg,#6d2fc2,#b01fc2); color:#fff; padding:28px 24px 36px; border-radius:0 0 42px 42px }
     .hero h1{margin:0 0 8px;font-size:32px}
     .hero p{margin:0 0 28px;font-size:20px}
@@ -36,7 +36,7 @@
     .pointer{ position:absolute; top:-5px; left:50%; transform:translateX(-50%); font-size:35px; z-index:2 }
     .refbox{ background:#f6f0ff; border-radius:18px; padding:16px; word-break:break-all; font-size:15px }
     .history{padding:13px 0;border-bottom:1px solid #eee}
-    .toast{ position:fixed; left:50%; bottom:120px; transform:translateX(-50%); background:#222; color:#fff; padding:13px 18px; border-radius:14px; display:none; z-index:100; font-weight:bold }
+    .toast{ position:fixed; left:50%; bottom:90px; transform:translateX(-50%); background:#222; color:#fff; padding:13px 18px; border-radius:14px; display:none; z-index:100; font-weight:bold }
     .modal{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.72); z-index:50; align-items:center; justify-content:center; padding:25px }
     .modal.show{display:flex}
     .admodal{ background:#fff; border-radius:25px; padding:28px; width:min(380px,92vw); text-align:center }
@@ -44,39 +44,10 @@
     .closex{ float:right; border:0; background:none; font-size:24px; cursor:pointer }
     .notice{ background:#fff4d6; padding:12px; border-radius:14px; font-size:14px; margin-top:12px }
     .rare{ background:linear-gradient(90deg,#fff1b8,#ffe08a); padding:13px; border-radius:15px; margin-top:14px; text-align:center; font-weight:bold; color:#7a5600 }
-
-    /* નવી નીચેની બેનર એડ સ્ટાઇલ */
-    .banner-ad {
-      position: fixed;
-      bottom: 58px;
-      left: 0;
-      right: 0;
-      height: 50px;
-      background: #1f1d2b;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      font-weight: bold;
-      border-top: 1px solid rgba(255,255,255,0.1);
-      box-shadow: 0 -2px 10px rgba(0,0,0,0.15);
-      z-index: 19;
-    }
-    .banner-badge {
-      background: #ffcf33;
-      color: #000;
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 4px;
-      margin-right: 8px;
-      font-weight: 800;
-    }
   </style>
 </head>
 <body>
 
-  <!-- HERO SECTION -->
   <div class="hero">
     <h1>🎬 Watch to Earn</h1>
     <p>Watch • Earn • Spin • Refer</p>
@@ -189,12 +160,6 @@
       </div>
     </div>
 
-  </div>
-
-  <!-- FIXED BANNER AD (બોટમ નેવિગેશનની બરાબર ઉપર) -->
-  <div class="banner-ad" id="bannerAd">
-    <span class="banner-badge">AD</span>
-    <span>🔥 Watch & Earn Special Offers • Tap to Explore</span>
   </div>
 
   <!-- BOTTOM NAVIGATION -->
@@ -517,9 +482,7 @@
       window.copyReferral=function(){
         var text= referralUrl();
         if( navigator.clipboard&& window.isSecureContext ){
-          navigator.clipboard.writeText(text).then(function(){
-            toast('✅ Link copied');
-          }).catch(function(){ fallbackCopy(text); });
+          navigator.clipboard.writeText(text) .then(function(){ toast('✅ Link copied'); }) .catch(function(){ fallbackCopy(text); });
         } else{
           fallbackCopy(text);
         }
@@ -549,7 +512,7 @@
       };
 
       window.saveProfile=function(){
-        var name= $('profileName').value.trim();
+        var name= $('profileName') .value .trim();
         if(!name){
           toast('Enter your name');
           return;
@@ -567,4 +530,15 @@
         if($('profileName')){
           $('profileName').value= localStorage.getItem( 'wte_name' )||'';
         }
-      
+        if( localStorage.getItem( 'wte_bonus_date' )===day() ){
+          $('bonusBtn').disabled=true;
+          $('bonusBtn').textContent= '✓ BONUS CLAIMED';
+        }
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
+
