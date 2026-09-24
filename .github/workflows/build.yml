@@ -3,7 +3,8 @@ name: Build Android APK from HTML
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   build:
@@ -14,27 +15,31 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Java
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: temurin
           java-version: '17'
 
-      - name: Create Native Android WebView Project
+      - name: Create Android Project
+        shell: bash
         run: |
+          set -e
+
           mkdir -p app/src/main/java/com/watchtoearn/app
-          mkdir -p app/src/main/res/values
           mkdir -p app/src/main/assets
+          mkdir -p app/src/main/res/values
 
           cp index.html app/src/main/assets/index.html
 
-          cat << 'EOF' > gradle.properties
+          cat > gradle.properties <<'EOF'
           android.useAndroidX=true
           android.enableJetifier=true
           android.suppressUnsupportedCompileSdk=35
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
           EOF
 
-          cat << 'EOF' > settings.gradle
+          cat > settings.gradle <<'EOF'
           pluginManagement {
               repositories {
                   google()
@@ -52,22 +57,22 @@ jobs:
           }
 
           rootProject.name = "WatchToEarn"
-          include ':app'
+          include(":app")
           EOF
 
-          cat << 'EOF' > build.gradle
+          cat > build.gradle <<'EOF'
           plugins {
               id 'com.android.application' version '8.2.2' apply false
           }
           EOF
 
-          cat << 'EOF' > app/build.gradle
+          cat > app/build.gradle <<'EOF'
           plugins {
               id 'com.android.application'
           }
 
           android {
-              namespace 'com.watchtoearn.app'
+              namespace "com.watchtoearn.app"
               compileSdk 35
 
               defaultConfig {
@@ -92,12 +97,12 @@ jobs:
           }
 
           dependencies {
-              implementation 'com.google.android.gms:play-services-ads:25.5.0'
-              implementation 'androidx.annotation:annotation:1.9.1'
+              implementation "com.google.android.gms:play-services-ads:24.7.0"
+              implementation "androidx.annotation:annotation:1.9.1"
           }
           EOF
 
-          cat << 'EOF' > app/src/main/AndroidManifest.xml
+          cat > app/src/main/AndroidManifest.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
 
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -131,7 +136,7 @@ jobs:
           </manifest>
           EOF
 
-          cat << 'EOF' > app/src/main/java/com/watchtoearn/app/MainActivity.java
+          cat > app/src/main/java/com/watchtoearn/app/MainActivity.java <<'EOF'
           package com.watchtoearn.app;
 
           import android.app.Activity;
@@ -174,10 +179,6 @@ jobs:
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
 
-                  MobileAds.initialize(this, initializationStatus -> {
-                      loadRewardedAd();
-                  });
-
                   FrameLayout root = new FrameLayout(this);
 
                   webView = new WebView(this);
@@ -192,6 +193,7 @@ jobs:
                   webView.setWebChromeClient(new WebChromeClient());
 
                   webView.setWebViewClient(new WebViewClient() {
+
                       @Override
                       public boolean shouldOverrideUrlLoading(
                               WebView view,
@@ -237,7 +239,6 @@ jobs:
                   root.addView(webView, webParams);
 
                   bannerAd = new AdView(this);
-
                   bannerAd.setAdSize(AdSize.BANNER);
                   bannerAd.setAdUnitId(TEST_BANNER_ID);
 
@@ -257,17 +258,21 @@ jobs:
                   root.addView(bannerAd, bannerParams);
 
                   setContentView(root);
+
+                  MobileAds.initialize(this, initializationStatus -> {
+                      loadRewardedAd();
+                  });
               }
 
               private void loadRewardedAd() {
 
-                  AdRequest adRequest =
+                  AdRequest request =
                           new AdRequest.Builder().build();
 
                   RewardedAd.load(
                           this,
                           TEST_REWARDED_ID,
-                          adRequest,
+                          request,
                           new RewardedAdLoadCallback() {
 
                               @Override
@@ -287,7 +292,7 @@ jobs:
 
                                               @Override
                                               public void onAdFailedToShowFullScreenContent(
-                                                      @NonNull AdError adError) {
+                                                      @NonNull AdError error) {
 
                                                   rewardedAd = null;
                                                   loadRewardedAd();
@@ -298,7 +303,7 @@ jobs:
 
                               @Override
                               public void onAdFailedToLoad(
-                                      @NonNull LoadAdError loadAdError) {
+                                      @NonNull LoadAdError error) {
 
                                   rewardedAd = null;
                               }
@@ -319,14 +324,15 @@ jobs:
                                       MainActivity.this,
                                       rewardItem -> {
 
-                                          webView.post(() -> {
+                                          if (webView != null) {
 
-                                              webView.evaluateJavascript(
-                                                      "if(window.adMobRewardEarned){window.adMobRewardEarned();}",
-                                                      null
+                                              webView.post(() ->
+                                                      webView.evaluateJavascript(
+                                                              "if(window.adMobRewardEarned){window.adMobRewardEarned();}",
+                                                              null
+                                                      )
                                               );
-
-                                          });
+                                          }
                                       }
                               );
 
@@ -365,21 +371,38 @@ jobs:
           EOF
 
       - name: Build Release APK
+        shell: bash
         run: |
+          set -e
           gradle assembleRelease --no-daemon
 
-      - name: Check APK
+      - name: Verify APK
+        shell: bash
         run: |
-          echo "APK files:"
+          set -e
+
+          echo "Searching for APK..."
+
           find app/build/outputs -type f -name "*.apk" -print
 
+          test -f app/build/outputs/apk/release/app-release.apk
+
+          echo "APK successfully created:"
+          ls -lh app/build/outputs/apk/release/app-release.apk
+
       - name: Prepare APK
+        shell: bash
         run: |
+          set -e
+
           mkdir -p apk-output
-          cp app/build/outputs/apk/release/app-release.apk apk-output/WatchToEarn.apk
+
+          cp app/build/outputs/apk/release/app-release.apk \
+             apk-output/WatchToEarn.apk
+
           ls -lh apk-output/WatchToEarn.apk
 
-      - name: Upload APK
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: WatchToEarn-APK
