@@ -19,6 +19,9 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
@@ -28,13 +31,13 @@ jobs:
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/assets
 
-          # Copy index.html directly into Android Assets
+          # Copy index.html into assets
           cp index.html app/src/main/assets/index.html
 
-          # Create root settings.gradle
+          # Root settings.gradle
           echo "include ':app'" > settings.gradle
 
-          # Create root build.gradle
+          # Root build.gradle
           cat << 'EOF' > build.gradle
           buildscript {
               repositories {
@@ -53,7 +56,7 @@ jobs:
           }
           EOF
 
-          # Create app build.gradle
+          # App build.gradle
           cat << 'EOF' > app/build.gradle
           apply plugin: 'com.android.application'
 
@@ -78,7 +81,7 @@ jobs:
           }
           EOF
 
-          # Create AndroidManifest.xml
+          # AndroidManifest.xml
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -101,7 +104,7 @@ jobs:
           </manifest>
           EOF
 
-          # Create MainActivity.java with Full JS, Storage & Share Support
+          # MainActivity.java
           cat << 'EOF' > app/src/main/java/com/watchtoearn/app/MainActivity.java
           package com.watchtoearn.app;
 
@@ -162,11 +165,8 @@ jobs:
           }
           EOF
 
-          # Create Gradle Wrapper
-          gradle wrapper --gradle-version 8.2
-
       - name: Build Release APK
-        run: ./gradlew assembleRelease
+        run: gradle assembleRelease
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
