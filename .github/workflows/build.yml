@@ -28,23 +28,22 @@ jobs:
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/assets
 
-          # Copy index.html into assets
           cp index.html app/src/main/assets/index.html
 
-          # Root settings.gradle
           echo "include ':app'" > settings.gradle
 
-          # Root build.gradle
           cat << 'EOF' > build.gradle
           buildscript {
               repositories {
                   google()
                   mavenCentral()
               }
+
               dependencies {
                   classpath 'com.android.tools.build:gradle:8.2.2'
               }
           }
+
           allprojects {
               repositories {
                   google()
@@ -53,18 +52,17 @@ jobs:
           }
           EOF
 
-          # App build.gradle
           cat << 'EOF' > app/build.gradle
           apply plugin: 'com.android.application'
 
           android {
               namespace 'com.watchtoearn.app'
-              compileSdk 34
+              compileSdk 35
 
               defaultConfig {
                   applicationId "com.watchtoearn.app"
                   minSdk 23
-                  targetSdk 34
+                  targetSdk 35
                   versionCode 1
                   versionName "1.0"
               }
@@ -76,32 +74,46 @@ jobs:
                   }
               }
           }
+
+          dependencies {
+              implementation 'com.google.android.gms:play-services-ads:25.5.0'
+          }
           EOF
 
-          # AndroidManifest.xml
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
+
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
               <uses-permission android:name="android.permission.INTERNET" />
+
               <application
                   android:allowBackup="true"
                   android:label="Watch To Earn"
                   android:supportsRtl="true"
                   android:theme="@android:style/Theme.NoTitleBar">
+
+                  <meta-data
+                      android:name="com.google.android.gms.ads.APPLICATION_ID"
+                      android:value="ca-app-pub-5150845800087406~5053767077" />
+
                   <activity
                       android:name=".MainActivity"
                       android:exported="true"
                       android:configChanges="orientation|screenSize|keyboardHidden">
+
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
                       </intent-filter>
+
                   </activity>
+
               </application>
+
           </manifest>
           EOF
 
-          # MainActivity.java
           cat << 'EOF' > app/src/main/java/com/watchtoearn/app/MainActivity.java
           package com.watchtoearn.app;
 
@@ -109,20 +121,71 @@ jobs:
           import android.content.Intent;
           import android.net.Uri;
           import android.os.Bundle;
+          import android.webkit.JavascriptInterface;
           import android.webkit.WebChromeClient;
           import android.webkit.WebSettings;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
+          import android.widget.FrameLayout;
+
+          import androidx.annotation.NonNull;
+
+          import com.google.android.gms.ads.AdRequest;
+          import com.google.android.gms.ads.AdView;
+          import com.google.android.gms.ads.AdSize;
+          import com.google.android.gms.ads.MobileAds;
+          import com.google.android.gms.ads.LoadAdError;
+          import com.google.android.gms.ads.FullScreenContentCallback;
+          import com.google.android.gms.ads.AdError;
+          import com.google.android.gms.ads.rewarded.RewardItem;
+          import com.google.android.gms.ads.rewarded.RewardedAd;
+          import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
+          import com.google.android.gms.ads.OnUserEarnedRewardListener;
 
           public class MainActivity extends Activity {
+
               private WebView webView;
+              private AdView bannerAd;
+              private RewardedAd rewardedAd;
+
+              /*
+               * Google TEST Rewarded Ad ID.
+               * Use this while testing.
+               *
+               * Your LIVE Rewarded ID:
+               * ca-app-pub-5150845800087406/3645352026
+               */
+              private static final String TEST_REWARDED_ID =
+                      "ca-app-pub-3940256099942544/5224354917";
+
+              /*
+               * Your LIVE Banner ID:
+               * ca-app-pub-5150845800087406/8514535326
+               *
+               * Testing ID used here.
+               */
+              private static final String TEST_BANNER_ID =
+                      "ca-app-pub-3940256099942544/6300978111";
+
+              /*
+               * Your LIVE Interstitial ID:
+               * ca-app-pub-5150845800087406/1725676409
+               */
+              private static final String TEST_INTERSTITIAL_ID =
+                      "ca-app-pub-3940256099942544/1033173712";
+
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
 
+                  MobileAds.initialize(this, initializationStatus -> {
+                      loadRewardedAd();
+                  });
+
+                  FrameLayout root = new FrameLayout(this);
+
                   webView = new WebView(this);
-                  setContentView(webView);
 
                   WebSettings settings = webView.getSettings();
                   settings.setJavaScriptEnabled(true);
@@ -132,28 +195,215 @@ jobs:
                   settings.setAllowContentAccess(true);
 
                   webView.setWebChromeClient(new WebChromeClient());
+
                   webView.setWebViewClient(new WebViewClient() {
                       @Override
-                      public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                          if (url.startsWith("whatsapp:") || url.contains("api.whatsapp.com") || url.startsWith("intent:")) {
+                      public boolean shouldOverrideUrlLoading(
+                              WebView view,
+                              String url) {
+
+                          if (url.startsWith("whatsapp:")
+                                  || url.contains("api.whatsapp.com")
+                                  || url.startsWith("intent:")) {
+
                               try {
-                                  Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                                  Intent intent =
+                                          new Intent(Intent.ACTION_VIEW,
+                                                  Uri.parse(url));
+
                                   startActivity(intent);
                                   return true;
+
                               } catch (Exception e) {
                                   return false;
                               }
                           }
+
                           return false;
                       }
                   });
 
-                  webView.loadUrl("file:///android_asset/index.html");
+                  /*
+                   * JavaScript bridge.
+                   * HTML can call:
+                   *
+                   * AndroidAd.showRewarded()
+                   */
+                  webView.addJavascriptInterface(
+                          new AdBridge(),
+                          "AndroidAd"
+                  );
+
+                  webView.loadUrl(
+                          "file:///android_asset/index.html"
+                  );
+
+                  root.addView(
+                          webView,
+                          new FrameLayout.LayoutParams(
+                                  FrameLayout.LayoutParams.MATCH_PARENT,
+                                  FrameLayout.LayoutParams.MATCH_PARENT
+                          )
+                  );
+
+
+                  /*
+                   * Banner Ad
+                   */
+                  bannerAd = new AdView(this);
+
+                  bannerAd.setAdSize(AdSize.BANNER);
+                  bannerAd.setAdUnitId(TEST_BANNER_ID);
+
+                  AdRequest bannerRequest =
+                          new AdRequest.Builder().build();
+
+                  bannerAd.loadAd(bannerRequest);
+
+
+                  FrameLayout.LayoutParams bannerParams =
+                          new FrameLayout.LayoutParams(
+                                  FrameLayout.LayoutParams.MATCH_PARENT,
+                                  FrameLayout.LayoutParams.WRAP_CONTENT
+                          );
+
+                  bannerParams.gravity =
+                          android.view.Gravity.BOTTOM;
+
+                  root.addView(
+                          bannerAd,
+                          bannerParams
+                  );
+
+
+                  setContentView(root);
               }
+
+
+              /*
+               * Load Rewarded Ad
+               */
+              private void loadRewardedAd() {
+
+                  AdRequest adRequest =
+                          new AdRequest.Builder().build();
+
+                  RewardedAd.load(
+                          this,
+                          TEST_REWARDED_ID,
+                          adRequest,
+                          new RewardedAdLoadCallback() {
+
+                              @Override
+                              public void onAdLoaded(
+                                      @NonNull RewardedAd ad) {
+
+                                  rewardedAd = ad;
+
+                                  rewardedAd.setFullScreenContentCallback(
+                                          new FullScreenContentCallback() {
+
+                                              @Override
+                                              public void onAdDismissedFullScreenContent() {
+                                                  rewardedAd = null;
+                                                  loadRewardedAd();
+                                              }
+
+                                              @Override
+                                              public void onAdFailedToShowFullScreenContent(
+                                                      @NonNull AdError adError) {
+
+                                                  rewardedAd = null;
+                                                  loadRewardedAd();
+                                              }
+                                          }
+                                  );
+                              }
+
+
+                              @Override
+                              public void onAdFailedToLoad(
+                                      @NonNull LoadAdError loadAdError) {
+
+                                  rewardedAd = null;
+                              }
+                          }
+                  );
+              }
+
+
+              /*
+               * JavaScript → Native AdMob bridge
+               */
+              public class AdBridge {
+
+                  @JavascriptInterface
+                  public void showRewarded() {
+
+                      runOnUiThread(() -> {
+
+                          if (rewardedAd != null) {
+
+                              rewardedAd.show(
+                                      MainActivity.this,
+                                      new OnUserEarnedRewardListener() {
+
+                                          @Override
+                                          public void onUserEarnedReward(
+                                                  @NonNull RewardItem rewardItem) {
+
+                                              /*
+                                               * Reward callback.
+                                               *
+                                               * Later we will connect this
+                                               * callback to your 10 coin
+                                               * JavaScript reward system.
+                                               */
+
+                                              webView.post(() -> {
+
+                                                  webView.evaluateJavascript(
+                                                          "window.adMobRewardEarned && window.adMobRewardEarned();",
+                                                          null
+                                                  );
+
+                                              });
+                                          }
+                                      }
+                              );
+
+                          } else {
+
+                              /*
+                               * Ad is not ready.
+                               * Load again.
+                               */
+                              loadRewardedAd();
+                          }
+                      });
+                  }
+              }
+
+
+              @Override
+              protected void onDestroy() {
+
+                  if (bannerAd != null) {
+                      bannerAd.destroy();
+                  }
+
+                  if (webView != null) {
+                      webView.destroy();
+                  }
+
+                  super.onDestroy();
+              }
+
 
               @Override
               public void onBackPressed() {
-                  if (webView.canGoBack()) {
+
+                  if (webView != null && webView.canGoBack()) {
                       webView.goBack();
                   } else {
                       super.onBackPressed();
@@ -170,4 +420,3 @@ jobs:
         with:
           name: WatchToEarn-Release-APK
           path: app/build/outputs/apk/**/*.apk
-          
