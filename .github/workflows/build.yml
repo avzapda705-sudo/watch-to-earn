@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -157,11 +158,9 @@ jobs:
               private AdView bannerAd;
               private RewardedAd rewardedAd;
 
-              // Google TEST Banner Ad
               private static final String TEST_BANNER_ID =
                       "ca-app-pub-3940256099942544/6300978111";
 
-              // Google TEST Rewarded Ad
               private static final String TEST_REWARDED_ID =
                       "ca-app-pub-3940256099942544/5224354917";
 
@@ -175,7 +174,6 @@ jobs:
 
                   FrameLayout root = new FrameLayout(this);
 
-                  // WebView
                   webView = new WebView(this);
 
                   WebSettings settings = webView.getSettings();
@@ -215,7 +213,6 @@ jobs:
                       }
                   });
 
-                  // JavaScript → Android bridge
                   webView.addJavascriptInterface(
                           new AdBridge(),
                           "AndroidAd"
@@ -232,10 +229,6 @@ jobs:
                           );
 
                   root.addView(webView, webParams);
-
-                  // -------------------------
-                  // BANNER AD
-                  // -------------------------
 
                   bannerAd = new AdView(this);
 
@@ -259,10 +252,6 @@ jobs:
 
                   setContentView(root);
               }
-
-              // -------------------------
-              // LOAD REWARDED AD
-              // -------------------------
 
               private void loadRewardedAd() {
 
@@ -301,4 +290,89 @@ jobs:
                                   );
                               }
 
-                              @
+                              @Override
+                              public void onAdFailedToLoad(
+                                      @NonNull LoadAdError loadAdError) {
+
+                                  rewardedAd = null;
+                              }
+                          }
+                  );
+              }
+
+              public class AdBridge {
+
+                  @JavascriptInterface
+                  public void showRewarded() {
+
+                      runOnUiThread(() -> {
+
+                          if (rewardedAd != null) {
+
+                              rewardedAd.show(
+                                      MainActivity.this,
+                                      rewardItem -> {
+
+                                          webView.post(() -> {
+
+                                              webView.evaluateJavascript(
+                                                      "if(window.adMobRewardEarned){window.adMobRewardEarned();}",
+                                                      null
+                                              );
+
+                                          });
+                                      }
+                              );
+
+                          } else {
+
+                              loadRewardedAd();
+                          }
+                      });
+                  }
+              }
+
+              @Override
+              protected void onDestroy() {
+
+                  if (bannerAd != null) {
+                      bannerAd.destroy();
+                  }
+
+                  if (webView != null) {
+                      webView.destroy();
+                  }
+
+                  super.onDestroy();
+              }
+
+              @Override
+              public void onBackPressed() {
+
+                  if (webView != null && webView.canGoBack()) {
+                      webView.goBack();
+                  } else {
+                      super.onBackPressed();
+                  }
+              }
+          }
+          EOF
+
+      - name: Build Release APK
+        run: |
+          gradle assembleRelease --no-daemon
+          echo "===== APK FILES ====="
+          find app/build/outputs -type f -name "*.apk" -print
+
+      - name: Prepare APK
+        run: |
+          mkdir -p apk-output
+          cp app/build/outputs/apk/release/app-release.apk apk-output/WatchToEarn.apk
+          ls -lh apk-output/WatchToEarn.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: WatchToEarn-APK
+          path: apk-output/WatchToEarn.apk
+          if-no-files-found: error
