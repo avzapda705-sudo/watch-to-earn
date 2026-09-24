@@ -1,1625 +1,570 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>Watch to Earn</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Watch to Earn</title>
+  <style>
+    *{box-sizing:border-box}
+    body{ margin:0; font-family:Arial,sans-serif; background:#f3f5fa; color:#222; padding-bottom:120px }
+    .hero{ background:linear-gradient(135deg,#6d2fc2,#b01fc2); color:#fff; padding:28px 24px 36px; border-radius:0 0 42px 42px }
+    .hero h1{margin:0 0 8px;font-size:32px}
+    .hero p{margin:0 0 28px;font-size:20px}
+    .balance{ background:rgba(255,255,255,.18); border-radius:26px; padding:20px 22px; display:flex; justify-content:space-between; align-items:center }
+    .balance small{display:block;font-size:18px}
+    .balance strong{font-size:42px}
+    .money{font-size:50px}
+    .wrap{padding:26px 24px}
+    .card{ background:#fff; border-radius:28px; padding:26px; margin-bottom:20px; box-shadow:0 5px 20px rgba(0,0,0,.06) }
+    h2{margin:0 0 14px;font-size:28px}
+    .muted{color:#777;font-size:18px;line-height:1.45}
+    .video{ height:300px; background:#151515; color:#fff; border-radius:24px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:28px; margin:18px 0 }
+    .video .icon{font-size:44px;margin-bottom:12px}
+    .btn{ width:100%; border:0; border-radius:18px; padding:17px; background:linear-gradient(90deg,#7132c4,#b129c1); color:#fff; font-weight:bold; font-size:20px; cursor:pointer }
+    .btn:disabled{opacity:.55}
+    .nav{ position:fixed; bottom:0; left:0; right:0; background:#fff; display:flex; justify-content:space-around; padding:10px 4px 8px; box-shadow:0 -4px 18px rgba(0,0,0,.12); z-index:20 }
+    .nav button{ background:none; border:0; font-size:12px; color:#666; font-weight:bold; cursor:pointer }
+    .nav button b{display:block;font-size:22px;margin-bottom:2px}
+    .page{display:none}
+    .page.active{display:block}
+    .input{ width:100%; padding:17px; border:1px solid #ddd; border-radius:16px; font-size:18px; margin:10px 0 15px }
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .stat{ background:#f4efff; border-radius:18px; padding:15px; text-align:center }
+    .stat strong{font-size:25px;display:block}
+    .wheelbox{text-align:center;position:relative;margin:15px auto}
+    .wheel{ width:min(330px,85vw); height:min(330px,85vw); margin:auto; transition:transform 4.2s cubic-bezier(.15,.7,.15,1); filter:drop-shadow(0 8px 10px rgba(0,0,0,.15)) }
+    .pointer{ position:absolute; top:-5px; left:50%; transform:translateX(-50%); font-size:35px; z-index:2 }
+    .refbox{ background:#f6f0ff; border-radius:18px; padding:16px; word-break:break-all; font-size:15px }
+    .history{padding:13px 0;border-bottom:1px solid #eee}
+    .toast{ position:fixed; left:50%; bottom:120px; transform:translateX(-50%); background:#222; color:#fff; padding:13px 18px; border-radius:14px; display:none; z-index:100; font-weight:bold }
+    .modal{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.72); z-index:50; align-items:center; justify-content:center; padding:25px }
+    .modal.show{display:flex}
+    .admodal{ background:#fff; border-radius:25px; padding:28px; width:min(380px,92vw); text-align:center }
+    .adtime{ font-size:46px; font-weight:bold; margin:20px }
+    .closex{ float:right; border:0; background:none; font-size:24px; cursor:pointer }
+    .notice{ background:#fff4d6; padding:12px; border-radius:14px; font-size:14px; margin-top:12px }
+    .rare{ background:linear-gradient(90deg,#fff1b8,#ffe08a); padding:13px; border-radius:15px; margin-top:14px; text-align:center; font-weight:bold; color:#7a5600 }
 
-<style>
-*{box-sizing:border-box}
-body{
-margin:0;
-font-family:Arial,sans-serif;
-background:#f3f5fa;
-color:#222;
-padding-bottom:85px
-}
-.hero{
-background:linear-gradient(135deg,#6d2fc2,#b01fc2);
-color:#fff;
-padding:28px 24px 36px;
-border-radius:0 0 42px 42px
-}
-.hero h1{margin:0 0 8px;font-size:32px}
-.hero p{margin:0 0 28px;font-size:20px}
-.balance{
-background:rgba(255,255,255,.18);
-border-radius:26px;
-padding:20px 22px;
-display:flex;
-justify-content:space-between;
-align-items:center
-}
-.balance small{display:block;font-size:18px}
-.balance strong{font-size:42px}
-.money{font-size:50px}
-.wrap{padding:26px 24px}
-.card{
-background:#fff;
-border-radius:28px;
-padding:26px;
-margin-bottom:20px;
-box-shadow:0 5px 20px rgba(0,0,0,.06)
-}
-h2{margin:0 0 14px;font-size:28px}
-.muted{color:#777;font-size:18px;line-height:1.45}
-.video{
-height:300px;
-background:#151515;
-color:#fff;
-border-radius:24px;
-display:flex;
-flex-direction:column;
-align-items:center;
-justify-content:center;
-font-size:28px;
-margin:18px 0
-}
-.video .icon{font-size:44px;margin-bottom:12px}
-.btn{
-width:100%;
-border:0;
-border-radius:18px;
-padding:17px;
-background:linear-gradient(90deg,#7132c4,#b129c1);
-color:#fff;
-font-weight:bold;
-font-size:20px;
-cursor:pointer
-}
-.btn:disabled{opacity:.55}
-.nav{
-position:fixed;
-bottom:0;
-left:0;
-right:0;
-background:#fff;
-display:flex;
-justify-content:space-around;
-padding:10px 4px 8px;
-box-shadow:0 -4px 18px rgba(0,0,0,.12);
-z-index:20
-}
-.nav button{
-background:none;
-border:0;
-font-size:12px;
-color:#666;
-font-weight:bold
-}
-.nav button b{display:block;font-size:22px;margin-bottom:2px}
-.page{display:none}
-.page.active{display:block}
-.input{
-width:100%;
-padding:17px;
-border:1px solid #ddd;
-border-radius:16px;
-font-size:18px;
-margin:10px 0 15px
-}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.stat{
-background:#f4efff;
-border-radius:18px;
-padding:15px;
-text-align:center
-}
-.stat strong{font-size:25px;display:block}
-.wheelbox{text-align:center;position:relative;margin:15px auto}
-.wheel{
-width:min(330px,85vw);
-height:min(330px,85vw);
-margin:auto;
-transition:transform 4.2s cubic-bezier(.15,.7,.15,1);
-filter:drop-shadow(0 8px 10px rgba(0,0,0,.15))
-}
-.pointer{
-position:absolute;
-top:-5px;
-left:50%;
-transform:translateX(-50%);
-font-size:35px;
-z-index:2
-}
-.refbox{
-background:#f6f0ff;
-border-radius:18px;
-padding:16px;
-word-break:break-all;
-font-size:15px
-}
-.history{padding:13px 0;border-bottom:1px solid #eee}
-.toast{
-position:fixed;
-left:50%;
-bottom:90px;
-transform:translateX(-50%);
-background:#222;
-color:#fff;
-padding:13px 18px;
-border-radius:14px;
-display:none;
-z-index:100;
-font-weight:bold
-}
-.modal{
-display:none;
-position:fixed;
-inset:0;
-background:rgba(0,0,0,.72);
-z-index:50;
-align-items:center;
-justify-content:center;
-padding:25px
-}
-.modal.show{display:flex}
-.admodal{
-background:#fff;
-border-radius:25px;
-padding:28px;
-width:min(380px,92vw);
-text-align:center
-}
-.adtime{
-font-size:46px;
-font-weight:bold;
-margin:20px
-}
-.closex{
-float:right;
-border:0;
-background:none;
-font-size:24px
-}
-.notice{
-background:#fff4d6;
-padding:12px;
-border-radius:14px;
-font-size:14px;
-margin-top:12px
-}
-.rare{
-background:linear-gradient(90deg,#fff1b8,#ffe08a);
-padding:13px;
-border-radius:15px;
-margin-top:14px;
-text-align:center;
-font-weight:bold;
-color:#7a5600
-}
-</style>
+    /* નવી નીચેની બેનર એડ સ્ટાઇલ */
+    .banner-ad {
+      position: fixed;
+      bottom: 58px;
+      left: 0;
+      right: 0;
+      height: 50px;
+      background: #1f1d2b;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: bold;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.15);
+      z-index: 19;
+    }
+    .banner-badge {
+      background: #ffcf33;
+      color: #000;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-right: 8px;
+      font-weight: 800;
+    }
+  </style>
 </head>
-
 <body>
 
-<header class="hero">
-<h1>🎬 Watch to Earn</h1>
-<p>Watch • Earn • Spin • Refer</p>
-
-<div class="balance">
-<div>
-<small>Your Balance</small>
-<strong id="balance">0</strong> 🪙
-</div>
-<div class="money">💰</div>
-</div>
-</header>
-
-
-<main class="wrap">
-
-<section id="home" class="page active">
-
-<div class="card">
-
-<h2>🎥 Watch & Earn</h2>
-
-<div class="muted">
-Watch the video for 30 seconds and earn 10 coins.
-</div>
-
-<div class="video" id="videoBox">
-<div class="icon">▶️</div>
-<div id="videoText">Ready to Watch</div>
-</div>
-
-<button
-class="btn"
-id="watchBtn"
-onclick="watchVideo()">
-▶ WATCH VIDEO
-</button>
-
-</div>
-
-
-<div class="card">
-
-<h2>🎁 Daily Bonus</h2>
-
-<div class="muted">
-Watch a rewarded ad and claim your daily 20–30 coin bonus.
-</div>
-
-<button
-class="btn"
-id="bonusBtn"
-onclick="dailyBonus()"
-style="margin-top:18px">
-🎁 CLAIM BONUS
-</button>
-
-</div>
-
-</section>
-
-
-<section id="earn" class="page">
-
-<div class="card">
-
-<h2>💎 Earn Coins</h2>
-
-<div class="row">
-
-<div class="stat">
-<strong>10 🪙</strong>
-<span>Per video</span>
-</div>
-
-<div class="stat">
-<strong>20–30 🪙</strong>
-<span>Daily bonus</span>
-</div>
-
-</div>
-
-<div class="notice">
-Complete the 30-second watch timer before coins are added.
-</div>
-
-</div>
-
-</section>
-
-
-<section id="spin" class="page">
-
-<div class="card">
-
-<h2>🎡 Spin & Win</h2>
-
-<div class="muted">
-Win between 5 and 50 coins.
-Maximum <b>5 spins per day</b>.
-</div>
-
-<div class="rare">
-🎁 30 & 50 coins are rare rewards
-</div>
-
-<div style="margin:14px 0;text-align:center;font-size:20px">
-Spins left today:
-<b id="spinLeft">5</b>/5
-</div>
-
-<div class="wheelbox">
-
-<div class="pointer">🔻</div>
-
-<canvas
-id="wheel"
-class="wheel"
-width="600"
-height="600">
-</canvas>
-
-</div>
-
-<button
-class="btn"
-id="spinBtn"
-onclick="startSpin()">
-🎡 SPIN NOW
-</button>
-
-<div class="notice">
-Complete the rewarded ad before each spin.
-</div>
-
-</div>
-
-</section>
-
-
-<section id="withdraw" class="page">
-
-<div class="card">
-
-<h2>💸 Withdraw</h2>
-
-<div class="muted">
-Minimum withdrawal: 200 coins.
-</div>
-
-<div style="
-background:#f4efff;
-padding:15px;
-border-radius:15px;
-margin:15px 0;
-font-size:18px">
-
-Available Balance:
-<b id="withdrawBalance">0</b> 🪙
-
-</div>
-
-<input
-class="input"
-id="upi"
-placeholder="Enter UPI ID e.g. name@upi">
-
-<input
-class="input"
-id="amount"
-type="number"
-placeholder="Coins to withdraw">
-
-<button
-class="btn"
-onclick="withdrawCoins()">
-REQUEST WITHDRAWAL
-</button>
-
-<div id="history" style="margin-top:18px"></div>
-
-</div>
-
-</section>
-
-
-<section id="referral" class="page">
-
-<div class="card">
-
-<h2>👥 Referral</h2>
-
-<div class="muted">
-Share your referral link and invite friends.
-</div>
-
-<p>
-<b>Your code:</b>
-<span id="refCode"></span>
-</p>
-
-<div class="refbox" id="refLink"></div>
-
-<button
-class="btn"
-onclick="copyReferral()"
-style="margin-top:15px">
-📋 COPY LINK
-</button>
-
-<button
-class="btn"
-onclick="shareReferral()"
-style="margin-top:10px">
-📲 SHARE
-</button>
-
-</div>
-
-</section>
-
-
-<section id="profile" class="page">
-
-<div class="card">
-
-<h2>👤 Profile</h2>
-
-<input
-class="input"
-id="profileName"
-placeholder="Enter your name">
-
-<button
-class="btn"
-onclick="saveProfile()">
-💾 SAVE PROFILE
-</button>
-
-</div>
-
-</section>
-
-</main>
-
-
-<nav class="nav">
-
-<button onclick="showPage('home')">
-<b>🏠</b>Home
-</button>
-
-<button onclick="showPage('earn')">
-<b>💎</b>Earn
-</button>
-
-<button onclick="showPage('spin')">
-<b>🎡</b>Spin
-</button>
-
-<button onclick="showPage('withdraw')">
-<b>💸</b>Withdraw
-</button>
-
-<button onclick="showPage('referral')">
-<b>👥</b>Refer
-</button>
-
-<button onclick="showPage('profile')">
-<b>👤</b>Profile
-</button>
-
-</nav>
-
-
-<div id="toast" class="toast"></div>
-
-
-<!-- Rewarded Ad Demo Modal -->
-
-<div id="adModal" class="modal">
-
-<div class="admodal">
-
-<button
-class="closex"
-onclick="closeAd()">
-✕
-</button>
-
-<h2>📺 Rewarded Ad</h2>
-
-<div class="muted" id="adMessage">
-Complete the ad to receive your reward.
-</div>
-
-<div
-class="adtime"
-id="adTime">
-5
-</div>
-
-<button
-class="btn"
-id="adContinue"
-disabled
-onclick="finishAd()">
-Please wait...
-</button>
-
-</div>
-
-</div>
-
-
-<script>
-
-(function(){
-
-'use strict';
-
-
-/* =========================
-   REWARDS
-   ========================= */
-
-var rewards=[
-
-{coins:5,weight:60},
-
-{coins:10,weight:25},
-
-{coins:20,weight:11},
-
-{coins:30,weight:3},
-
-{coins:50,weight:1}
-
-];
-
-
-var balance=
-Number(
-localStorage.getItem('wte_coins')||0
-);
-
-var rotation=0;
-
-var spinning=false;
-
-var adTimer=null;
-
-var currentAdAction=null;
-
-
-
-function $(id){
-
-return document.getElementById(id);
-
-}
-
-
-
-function saveBalance(){
-
-localStorage.setItem(
-'wte_coins',
-String(balance)
-);
-
-$('balance').textContent=balance;
-
-if($('withdrawBalance')){
-
-$('withdrawBalance').textContent=balance;
-
-}
-
-}
-
-
-
-function toast(msg){
-
-var t=$('toast');
-
-t.textContent=msg;
-
-t.style.display='block';
-
-clearTimeout(window.__toast);
-
-window.__toast=setTimeout(
-function(){
-
-t.style.display='none';
-
-},
-2500
-);
-
-}
-
-
-
-window.showPage=function(id){
-
-document
-.querySelectorAll('.page')
-.forEach(function(p){
-
-p.classList.remove('active');
-
-});
-
-
-var p=$(id);
-
-if(p){
-
-p.classList.add('active');
-
-}
-
-
-if(id==='withdraw'){
-
-renderHistory();
-
-saveBalance();
-
-}
-
-};
-
-
-
-function day(){
-
-var d=new Date();
-
-return d.getFullYear()
-+'-'
-+(d.getMonth()+1)
-+'-'
-+d.getDate();
-
-}
-
-
-
-/* =========================
-   SPIN COUNT
-   ========================= */
-
-function spinUsed(){
-
-if(
-localStorage.getItem('wte_spin_date')
-!==day()
-){
-
-localStorage.setItem(
-'wte_spin_date',
-day()
-);
-
-localStorage.setItem(
-'wte_spin_count',
-'0'
-);
-
-}
-
-return Number(
-localStorage.getItem('wte_spin_count')||0
-);
-
-}
-
-
-
-function updateSpin(){
-
-var left=
-Math.max(
-0,
-5-spinUsed()
-);
-
-$('spinLeft').textContent=left;
-
-$('spinBtn').disabled=
-left===0||spinning;
-
-$('spinBtn').textContent=
-left===0
-?'TOMORROW AGAIN'
-:'🎡 SPIN NOW';
-
-}
-
-
-
-/* =========================
-   RANDOM REWARD
-   ========================= */
-
-function weighted(){
-
-var total=
-rewards.reduce(
-function(a,b){
-
-return a+b.weight;
-
-},
-0
-);
-
-var r=Math.random()*total;
-
-
-for(
-var i=0;
-i<rewards.length;
-i++
-){
-
-r-=rewards[i].weight;
-
-if(r<0){
-
-return rewards[i];
-
-}
-
-}
-
-return rewards[0];
-
-}
-
-
-
-/* =========================
-   DRAW WHEEL
-   ========================= */
-
-function drawWheel(){
-
-var c=$('wheel');
-
-var ctx=c.getContext('2d');
-
-var cx=300;
-
-var cy=300;
-
-var r=285;
-
-var colors=[
-'#ffcf33',
-'#7b39c8',
-'#32a852',
-'#ef4d62',
-'#2d82e8'
-];
-
-
-ctx.clearRect(
-0,0,600,600
-);
-
-
-rewards.forEach(function(x,i){
-
-var a=
-(-90+i*72)
-*Math.PI/180;
-
-var b=
-(-90+(i+1)*72)
-*Math.PI/180;
-
-
-ctx.beginPath();
-
-ctx.moveTo(cx,cy);
-
-ctx.arc(
-cx,
-cy,
-r,
-a,
-b
-);
-
-ctx.closePath();
-
-ctx.fillStyle=
-colors[i];
-
-ctx.fill();
-
-ctx.strokeStyle='#fff';
-
-ctx.lineWidth=7;
-
-ctx.stroke();
-
-
-ctx.save();
-
-ctx.translate(cx,cy);
-
-ctx.rotate((a+b)/2);
-
-ctx.fillStyle='#fff';
-
-ctx.font=
-'bold 42px Arial';
-
-ctx.textAlign='center';
-
-ctx.fillText(
-x.coins+'',
-r*.67,
-14
-);
-
-ctx.restore();
-
-});
-
-
-ctx.beginPath();
-
-ctx.arc(
-cx,
-cy,
-58,
-0,
-Math.PI*2
-);
-
-ctx.fillStyle='#fff';
-
-ctx.fill();
-
-ctx.strokeStyle='#ddd';
-
-ctx.lineWidth=4;
-
-ctx.stroke();
-
-
-ctx.fillStyle='#7b39c8';
-
-ctx.font=
-'bold 23px Arial';
-
-ctx.textAlign='center';
-
-ctx.fillText(
-'SPIN',
-cx,
-cy+8
-);
-
-}
-
-
-
-/* =========================
-   SPIN
-   ========================= */
-
-window.startSpin=function(){
-
-if(spinning)return;
-
-
-if(spinUsed()>=5){
-
-toast(
-'Today’s 5 spins are complete'
-);
-
-return;
-
-}
-
-
-openRewardAd('spin');
-
-};
-
-
-
-/* =========================
-   DAILY BONUS
-   ========================= */
-
-window.dailyBonus=function(){
-
-if(
-localStorage.getItem('wte_bonus_date')
-===day()
-){
-
-toast(
-'Daily bonus already claimed'
-);
-
-return;
-
-}
-
-
-openRewardAd('bonus');
-
-};
-
-
-
-/* =========================
-   REWARDED AD FLOW
-   ========================= */
-
-function openRewardAd(action){
-
-currentAdAction=action;
-
-
-var m=$('adModal');
-
-m.classList.add('show');
-
-
-$('adMessage').textContent=
-action==='spin'
-?'Complete the ad to spin the wheel.'
-:'Complete the ad to claim your daily bonus.';
-
-
-var n=5;
-
-
-$('adTime').textContent=n;
-
-$('adContinue').disabled=true;
-
-$('adContinue').textContent=
-'Please wait...';
-
-
-clearInterval(adTimer);
-
-
-adTimer=setInterval(function(){
-
-n--;
-
-$('adTime').textContent=n;
-
-
-if(n<=0){
-
-clearInterval(adTimer);
-
-$('adContinue').disabled=false;
-
-$('adContinue').textContent=
-action==='spin'
-?'CONTINUE TO SPIN'
-:'CLAIM BONUS';
-
-}
-
-},1000);
-
-}
-
-
-
-window.closeAd=function(){
-
-clearInterval(adTimer);
-
-$('adModal')
-.classList.remove('show');
-
-currentAdAction=null;
-
-};
-
-
-
-window.finishAd=function(){
-
-var action=currentAdAction;
-
-closeAd();
-
-
-if(action==='spin'){
-
-doSpin();
-
-}
-
-else if(action==='bonus'){
-
-giveDailyBonus();
-
-}
-
-};
-
-
-
-/* =========================
-   SPIN REWARD
-   ========================= */
-
-function doSpin(){
-
-if(
-spinning||
-spinUsed()>=5
-){
-
-return;
-
-}
-
-
-spinning=true;
-
-
-localStorage.setItem(
-'wte_spin_count',
-String(spinUsed()+1)
-);
-
-
-updateSpin();
-
-
-var reward=weighted();
-
-
-var index=
-rewards.findIndex(
-function(x){
-
-return x.coins===
-reward.coins;
-
-}
-);
-
-
-var target=
-360*6
--36
--index*72;
-
-
-rotation+=
-target-
-(rotation%360);
-
-
-$('wheel').style.transform=
-'rotate('
-+rotation
-+'deg)';
-
-
-setTimeout(function(){
-
-balance+=reward.coins;
-
-saveBalance();
-
-
-toast(
-'🎉 You won '
-+reward.coins
-+' coins!'
-);
-
-
-spinning=false;
-
-updateSpin();
-
-},4300);
-
-}
-
-
-
-/* =========================
-   DAILY BONUS REWARD
-   ========================= */
-
-function giveDailyBonus(){
-
-if(
-localStorage.getItem('wte_bonus_date')
-===day()
-){
-
-toast(
-'Daily bonus already claimed'
-);
-
-return;
-
-}
-
-
-var n=
-20+
-Math.floor(
-Math.random()*11
-);
-
-
-balance+=n;
-
-saveBalance();
-
-
-localStorage.setItem(
-'wte_bonus_date',
-day()
-);
-
-
-$('bonusBtn').disabled=true;
-
-$('bonusBtn').textContent=
-'✓ BONUS CLAIMED';
-
-
-toast(
-'🎁 Daily bonus +'
-+n
-+' coins'
-);
-
-}
-
-
-
-/* =========================
-   WATCH VIDEO
-   ========================= */
-
-window.watchVideo=function(){
-
-var btn=$('watchBtn');
-
-if(btn.disabled)return;
-
-
-btn.disabled=true;
-
-
-var left=30;
-
-
-$('videoText').textContent=
-'Watching... '
-+left
-+'s';
-
-
-var timer=setInterval(function(){
-
-left--;
-
-
-$('videoText').textContent=
-'Watching... '
-+left
-+'s';
-
-
-if(left<=0){
-
-clearInterval(timer);
-
-
-balance+=10;
-
-saveBalance();
-
-
-$('videoText').textContent=
-'✅ Completed +10 coins';
-
-
-btn.disabled=false;
-
-btn.textContent=
-'▶ WATCH AGAIN';
-
-
-toast(
-'🎉 10 coins added'
-);
-
-}
-
-},1000);
-
-};
-
-
-
-/* =========================
-   WITHDRAW
-   ========================= */
-
-window.withdrawCoins=function(){
-
-var upi=
-$('upi').value.trim();
-
-var amount=
-Number(
-$('amount').value
-);
-
-
-if(
-!upi||
-upi.indexOf('@')<1
-){
-
-toast(
-'Enter a valid UPI ID'
-);
-
-return;
-
-}
-
-
-if(amount<200){
-
-toast(
-'Minimum withdrawal is 200 coins'
-);
-
-return;
-
-}
-
-
-if(amount>balance){
-
-toast(
-'Not enough coins'
-);
-
-return;
-
-}
-
-
-balance-=amount;
-
-saveBalance();
-
-
-var h=
-JSON.parse(
-localStorage.getItem(
-'wte_history'
-)||'[]'
-);
-
-
-h.unshift({
-
-amount:amount,
-
-upi:upi,
-
-date:
-new Date()
-.toLocaleString(),
-
-status:'Pending'
-
-});
-
-
-localStorage.setItem(
-'wte_history',
-JSON.stringify(h)
-);
-
-
-$('amount').value='';
-
-renderHistory();
-
-
-toast(
-'Withdrawal request saved as Pending'
-);
-
-};
-
-
-
-function renderHistory(){
-
-var h=
-JSON.parse(
-localStorage.getItem(
-'wte_history'
-)||'[]'
-);
-
-
-var el=$('history');
-
-
-if(!h.length){
-
-el.innerHTML=
-'<div class="muted">No withdrawal history yet.</div>';
-
-return;
-
-}
-
-
-el.innerHTML=
-'<h3>Withdrawal History</h3>'
-+
-h.map(function(x){
-
-return
-
-'<div class="history">'
-+
-'<b>'
-+x.amount
-+' coins</b><br>'
-+
-'UPI: '
-+x.upi
-+'<br>'
-+
-x.date
-+'<br>'
-+
-'Status: <b>'
-+x.status
-+'</b>'
-+
-'</div>';
-
-}).join('');
-
-}
-
-
-
-/* =========================
-   REFERRAL
-   ========================= */
-
-function referralCode(){
-
-var c=
-localStorage.getItem(
-'wte_ref'
-);
-
-
-if(!c){
-
-c=
-'WT'
-+
-Math.floor(
-100000+
-Math.random()*900000
-);
-
-
-localStorage.setItem(
-'wte_ref',
-c
-);
-
-}
-
-
-return c;
-
-}
-
-
-
-function referralUrl(){
-
-return location.href
-.split('?')[0]
-+
-'?ref='
-+
-encodeURIComponent(
-referralCode()
-);
-
-}
-
-
-
-function updateRef(){
-
-$('refCode').textContent=
-referralCode();
-
-$('refLink').textContent=
-referralUrl();
-
-}
-
-
-
-window.copyReferral=function(){
-
-var text=
-referralUrl();
-
-
-if(
-navigator.clipboard&&
-window.isSecureContext
-){
-
-navigator.clipboard
-.writeText(text)
-.then(function(){
-
-toast('✅ Link copied');
-
-})
-.catch(function(){
-
-fallbackCopy(text);
-
-});
-
-}
-
-else{
-
-fallbackCopy(text);
-
-}
-
-};
-
-
-
-function fallbackCopy(text){
-
-var ta=
-document.createElement(
-'textarea'
-);
-
-ta.value=text;
-
-ta.style.position='fixed';
-
-ta.style.left='-9999px';
-
-document.body.appendChild(ta);
-
-ta.focus();
-
-ta.select();
-
-
-try{
-
-document.execCommand('copy');
-
-toast('✅ Link copied');
-
-}
-
-catch(e){
-
-toast(
-'Copy failed — long press the link'
-);
-
-}
-
-
-document.body.removeChild(ta);
-
-}
-
-
-
-/* =========================
-   SHARE
-   ========================= */
-
-window.shareReferral=function(){
-
-var text=
-'🎬 Watch to Earn app\n'
-+
-'Join using my referral link:\n'
-+
-referralUrl();
-
-
-var url=
-'https://api.whatsapp.com/send?text='
-+
-encodeURIComponent(text);
-
-
-window.location.href=url;
-
-};
-
-
-
-/* =========================
-   PROFILE
-   ========================= */
-
-window.saveProfile=function(){
-
-var name=
-$('profileName')
-.value
-.trim();
-
-
-if(!name){
-
-toast('Enter your name');
-
-return;
-
-}
-
-
-localStorage.setItem(
-'wte_name',
-name
-);
-
-
-toast(
-'✅ Profile saved'
-);
-
-};
-
-
-
-/* =========================
-   INITIALIZE
-   ========================= */
-
-function init(){
-
-saveBalance();
-
-drawWheel();
-
-updateSpin();
-
-updateRef();
-
-renderHistory();
-
-
-$('profileName').value=
-localStorage.getItem(
-'wte_name'
-)||'';
-
-
-if(
-localStorage.getItem(
-'wte_bonus_date'
-)===day()
-){
-
-$('bonusBtn').disabled=true;
-
-$('bonusBtn').textContent=
-'✓ BONUS CLAIMED';
-
-}
-
-}
-
-
-init();
-
-})();
-
-</script>
-
-</body>
-</html>
+  <!-- HERO SECTION -->
+  <div class="hero">
+    <h1>🎬 Watch to Earn</h1>
+    <p>Watch • Earn • Spin • Refer</p>
+    <div class="balance">
+      <div>
+        <small>Your Balance</small>
+        <strong><span id="balance">0</span> 🪙</strong>
+      </div>
+      <div class="money">💰</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <!-- PAGE 1: HOME / WATCH -->
+    <div id="home" class="page active">
+      <div class="card">
+        <h2>🎥 Watch & Earn</h2>
+        <div class="muted">Watch the video for 30 seconds and earn 10 coins.</div>
+        <div class="video">
+          <div class="icon">▶️</div>
+          <div id="videoText">Ready to Watch</div>
+        </div>
+        <button id="watchBtn" class="btn" onclick="watchVideo()">▶ WATCH VIDEO</button>
+      </div>
+
+      <div class="card">
+        <h2>🎁 Daily Bonus</h2>
+        <div class="muted">Watch a rewarded ad and claim your daily 20–30 coin bonus.</div>
+        <br>
+        <button id="bonusBtn" class="btn" onclick="dailyBonus()">🎁 CLAIM BONUS</button>
+      </div>
+    </div>
+
+    <!-- PAGE 2: EARN DETAILS -->
+    <div id="earn" class="page">
+      <div class="card">
+        <h2>💎 Earn Coins</h2>
+        <div class="row">
+          <div class="stat">
+            <strong>10 🪙</strong>
+            <span>Per video</span>
+          </div>
+          <div class="stat">
+            <strong>20–30 🪙</strong>
+            <span>Daily bonus</span>
+          </div>
+        </div>
+        <div class="notice">Complete the 30-second watch timer before coins are added.</div>
+      </div>
+    </div>
+
+    <!-- PAGE 3: SPIN WHEEL -->
+    <div id="spin" class="page">
+      <div class="card">
+        <h2>🎡 Spin & Win</h2>
+        <div class="muted">Win between 5 and 50 coins. Maximum 5 spins per day.</div>
+        <div class="rare">🎁 30 & 50 coins are rare rewards</div>
+        <div style="margin-top:15px; font-weight:bold;">Spins left today: <span id="spinLeft">5</span>/5</div>
+        
+        <div class="wheelbox">
+          <div class="pointer">🔻</div>
+          <canvas id="wheel" class="wheel" width="600" height="600"></canvas>
+        </div>
+
+        <button id="spinBtn" class="btn" onclick="startSpin()">🎡 SPIN NOW</button>
+        <div class="notice">Complete the rewarded ad before each spin.</div>
+      </div>
+    </div>
+
+    <!-- PAGE 4: WITHDRAW -->
+    <div id="withdraw" class="page">
+      <div class="card">
+        <h2>💸 Withdraw</h2>
+        <div class="muted">Minimum withdrawal: 200 coins.</div>
+        <div style="margin: 15px 0; font-size: 20px; font-weight: bold;">
+          Available Balance: <span id="withdrawBalance">0</span> 🪙
+        </div>
+        
+        <input type="text" id="upi" class="input" placeholder="Enter UPI ID (e.g. name@upi)">
+        <input type="number" id="amount" class="input" placeholder="Enter Coins (Min 200)">
+        <button class="btn" onclick="withdrawCoins()">REQUEST WITHDRAWAL</button>
+        
+        <div id="history" style="margin-top:20px;"></div>
+      </div>
+    </div>
+
+    <!-- PAGE 5: REFERRAL -->
+    <div id="refer" class="page">
+      <div class="card">
+        <h2>👥 Referral</h2>
+        <div class="muted">Share your referral link and invite friends.</div>
+        <br>
+        <div>Your code: <strong id="refCode"></strong></div>
+        <div class="refbox" id="refLink" style="margin: 12px 0;"></div>
+        
+        <div class="row">
+          <button class="btn" onclick="copyReferral()">📋 COPY LINK</button>
+          <button class="btn" onclick="shareReferral()">📲 SHARE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 6: PROFILE -->
+    <div id="profile" class="page">
+      <div class="card">
+        <h2>👤 Profile</h2>
+        <input type="text" id="profileName" class="input" placeholder="Enter Your Name">
+        <button class="btn" onclick="saveProfile()">💾 SAVE PROFILE</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FIXED BANNER AD (બોટમ નેવિગેશનની બરાબર ઉપર) -->
+  <div class="banner-ad" id="bannerAd">
+    <span class="banner-badge">AD</span>
+    <span>🔥 Watch & Earn Special Offers • Tap to Explore</span>
+  </div>
+
+  <!-- BOTTOM NAVIGATION -->
+  <div class="nav">
+    <button onclick="showPage('home')"><b>🏠</b>Home</button>
+    <button onclick="showPage('earn')"><b>💎</b>Earn</button>
+    <button onclick="showPage('spin')"><b>🎡</b>Spin</button>
+    <button onclick="showPage('withdraw')"><b>💸</b>Withdraw</button>
+    <button onclick="showPage('refer')"><b>👥</b>Refer</button>
+    <button onclick="showPage('profile')"><b>👤</b>Profile</button>
+  </div>
+
+  <!-- MODAL / REWARDED AD -->
+  <div id="adModal" class="modal">
+    <div class="admodal">
+      <button class="closex" onclick="closeAd()">✕</button>
+      <h2>📺 Rewarded Ad</h2>
+      <div id="adMessage" class="muted">Complete the ad to receive your reward.</div>
+      <div id="adTime" class="adtime">5</div>
+      <button id="adContinue" class="btn" onclick="finishAd()" disabled>Please wait...</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    (function(){
+      'use strict';
+
+      var rewards=[
+        {coins:5,weight:60},
+        {coins:10,weight:25},
+        {coins:20,weight:11},
+        {coins:30,weight:3},
+        {coins:50,weight:1}
+      ];
+
+      var balance= Number( localStorage.getItem('wte_coins')||0 );
+      var rotation=0;
+      var spinning=false;
+      var adTimer=null;
+      var currentAdAction=null;
+
+      function $(id){ return document.getElementById(id); }
+
+      function saveBalance(){
+        localStorage.setItem( 'wte_coins', String(balance) );
+        $('balance').textContent=balance;
+        if($('withdrawBalance')){
+          $('withdrawBalance').textContent=balance;
+        }
+      }
+
+      function toast(msg){
+        var t=$('toast');
+        t.textContent=msg;
+        t.style.display='block';
+        clearTimeout(window.__toast);
+        window.__toast=setTimeout( function(){ t.style.display='none'; }, 2500 );
+      }
+
+      window.showPage=function(id){
+        document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+        var p=$(id);
+        if(p){ p.classList.add('active'); }
+        if(id==='withdraw'){
+          renderHistory();
+          saveBalance();
+        }
+      };
+
+      function day(){
+        var d=new Date();
+        return d.getFullYear() +'-' +(d.getMonth()+1) +'-' +d.getDate();
+      }
+
+      function spinUsed(){
+        if( localStorage.getItem('wte_spin_date') !==day() ){
+          localStorage.setItem( 'wte_spin_date', day() );
+          localStorage.setItem( 'wte_spin_count', '0' );
+        }
+        return Number( localStorage.getItem('wte_spin_count')||0 );
+      }
+
+      function updateSpin(){
+        var left= Math.max( 0, 5-spinUsed() );
+        $('spinLeft').textContent=left;
+        $('spinBtn').disabled= left===0||spinning;
+        $('spinBtn').textContent= left===0 ?'TOMORROW AGAIN' :'🎡 SPIN NOW';
+      }
+
+      function weighted(){
+        var total= rewards.reduce( function(a,b){ return a+b.weight; }, 0 );
+        var r=Math.random()*total;
+        for( var i=0; i<rewards.length; i++ ){
+          r-=rewards[i].weight;
+          if(r<0){ return rewards[i]; }
+        }
+        return rewards[0];
+      }
+
+      function drawWheel(){
+        var c=$('wheel');
+        if(!c) return;
+        var ctx=c.getContext('2d');
+        var cx=300;
+        var cy=300;
+        var r=285;
+        var colors=[ '#ffcf33', '#7b39c8', '#32a852', '#ef4d62', '#2d82e8' ];
+        ctx.clearRect( 0,0,600,600 );
+        rewards.forEach(function(x,i){
+          var a= (-90+i*72) *Math.PI/180;
+          var b= (-90+(i+1)*72) *Math.PI/180;
+          ctx.beginPath();
+          ctx.moveTo(cx,cy);
+          ctx.arc( cx, cy, r, a, b );
+          ctx.closePath();
+          ctx.fillStyle= colors[i];
+          ctx.fill();
+          ctx.strokeStyle='#fff';
+          ctx.lineWidth=7;
+          ctx.stroke();
+          ctx.save();
+          ctx.translate(cx,cy);
+          ctx.rotate((a+b)/2);
+          ctx.fillStyle='#fff';
+          ctx.font= 'bold 42px Arial';
+          ctx.textAlign='center';
+          ctx.fillText( x.coins+'', r*.67, 14 );
+          ctx.restore();
+        });
+        ctx.beginPath();
+        ctx.arc( cx, cy, 58, 0, Math.PI*2 );
+        ctx.fillStyle='#fff';
+        ctx.fill();
+        ctx.strokeStyle='#ddd';
+        ctx.lineWidth=4;
+        ctx.stroke();
+        ctx.fillStyle='#7b39c8';
+        ctx.font= 'bold 23px Arial';
+        ctx.textAlign='center';
+        ctx.fillText( 'SPIN', cx, cy+8 );
+      }
+
+      window.startSpin=function(){
+        if(spinning)return;
+        if(spinUsed()>=5){
+          toast( 'Today’s 5 spins are complete' );
+          return;
+        }
+        openRewardAd('spin');
+      };
+
+      window.dailyBonus=function(){
+        if( localStorage.getItem('wte_bonus_date') ===day() ){
+          toast( 'Daily bonus already claimed' );
+          return;
+        }
+        openRewardAd('bonus');
+      };
+
+      function openRewardAd(action){
+        currentAdAction=action;
+        var m=$('adModal');
+        m.classList.add('show');
+        $('adMessage').textContent= action==='spin' ?'Complete the ad to spin the wheel.' :'Complete the ad to claim your daily bonus.';
+        var n=5;
+        $('adTime').textContent=n;
+        $('adContinue').disabled=true;
+        $('adContinue').textContent= 'Please wait...';
+        clearInterval(adTimer);
+        adTimer=setInterval(function(){
+          n--;
+          $('adTime').textContent=n;
+          if(n<=0){
+            clearInterval(adTimer);
+            $('adContinue').disabled=false;
+            $('adContinue').textContent= action==='spin' ?'CONTINUE TO SPIN' :'CLAIM BONUS';
+          }
+        },1000);
+      }
+
+      window.closeAd=function(){
+        clearInterval(adTimer);
+        $('adModal').classList.remove('show');
+        currentAdAction=null;
+      };
+
+      window.finishAd=function(){
+        var action=currentAdAction;
+        closeAd();
+        if(action==='spin'){
+          doSpin();
+        } else if(action==='bonus'){
+          giveDailyBonus();
+        }
+      };
+
+      function doSpin(){
+        if( spinning|| spinUsed()>=5 ){ return; }
+        spinning=true;
+        localStorage.setItem( 'wte_spin_count', String(spinUsed()+1) );
+        updateSpin();
+        var reward=weighted();
+        var index= rewards.findIndex( function(x){ return x.coins=== reward.coins; } );
+        var target= 360*6 -36 -index*72;
+        rotation+= target- (rotation%360);
+        $('wheel').style.transform= 'rotate(' +rotation +'deg)';
+        setTimeout(function(){
+          balance+=reward.coins;
+          saveBalance();
+          toast( '🎉 You won ' +reward.coins +' coins!' );
+          spinning=false;
+          updateSpin();
+        },4300);
+      }
+
+      function giveDailyBonus(){
+        if( localStorage.getItem('wte_bonus_date') ===day() ){
+          toast( 'Daily bonus already claimed' );
+          return;
+        }
+        var n= 20+ Math.floor( Math.random()*11 );
+        balance+=n;
+        saveBalance();
+        localStorage.setItem( 'wte_bonus_date', day() );
+        $('bonusBtn').disabled=true;
+        $('bonusBtn').textContent= '✓ BONUS CLAIMED';
+        toast( '🎁 Daily bonus +' +n +' coins' );
+      }
+
+      window.watchVideo=function(){
+        var btn=$('watchBtn');
+        if(btn.disabled)return;
+        btn.disabled=true;
+        var left=30;
+        $('videoText').textContent= 'Watching... ' +left +'s';
+        var timer=setInterval(function(){
+          left--;
+          $('videoText').textContent= 'Watching... ' +left +'s';
+          if(left<=0){
+            clearInterval(timer);
+            balance+=10;
+            saveBalance();
+            $('videoText').textContent= '✅ Completed +10 coins';
+            btn.disabled=false;
+            btn.textContent= '▶ WATCH AGAIN';
+            toast( '🎉 10 coins added' );
+          }
+        },1000);
+      };
+
+      window.withdrawCoins=function(){
+        var upi= $('upi').value.trim();
+        var amount= Number( $('amount').value );
+        if( !upi|| upi.indexOf('@')<1 ){
+          toast( 'Enter a valid UPI ID' );
+          return;
+        }
+        if(amount<200){
+          toast( 'Minimum withdrawal is 200 coins' );
+          return;
+        }
+        if(amount>balance){
+          toast( 'Not enough coins' );
+          return;
+        }
+        balance-=amount;
+        saveBalance();
+        var h= JSON.parse( localStorage.getItem( 'wte_history' )||'[]' );
+        h.unshift({
+          amount:amount,
+          upi:upi,
+          date: new Date().toLocaleString(),
+          status:'Pending'
+        });
+        localStorage.setItem( 'wte_history', JSON.stringify(h) );
+        $('amount').value='';
+        renderHistory();
+        toast( 'Withdrawal request saved as Pending' );
+      };
+
+      function renderHistory(){
+        var h= JSON.parse( localStorage.getItem( 'wte_history' )||'[]' );
+        var el=$('history');
+        if(!el) return;
+        if(!h.length){
+          el.innerHTML= '<div class="muted">No withdrawal history yet.</div>';
+          return;
+        }
+        el.innerHTML= '<h3>Withdrawal History</h3>' + h.map(function(x){
+          return '<div class="history">' +
+                 '<b>' +x.amount +' coins</b><br>' +
+                 'UPI: ' +x.upi +'<br>' +
+                 x.date +'<br>' +
+                 'Status: <b>' +x.status +'</b>' +
+                 '</div>';
+        }).join('');
+      }
+
+      function referralCode(){
+        var c= localStorage.getItem( 'wte_ref' );
+        if(!c){
+          c= 'WT' + Math.floor( 100000+ Math.random()*900000 );
+          localStorage.setItem( 'wte_ref', c );
+        }
+        return c;
+      }
+
+      function referralUrl(){
+        return location.href.split('?')[0] + '?ref=' + encodeURIComponent( referralCode() );
+      }
+
+      function updateRef(){
+        if($('refCode')) $('refCode').textContent= referralCode();
+        if($('refLink')) $('refLink').textContent= referralUrl();
+      }
+
+      window.copyReferral=function(){
+        var text= referralUrl();
+        if( navigator.clipboard&& window.isSecureContext ){
+          navigator.clipboard.writeText(text).then(function(){
+            toast('✅ Link copied');
+          }).catch(function(){ fallbackCopy(text); });
+        } else{
+          fallbackCopy(text);
+        }
+      };
+
+      function fallbackCopy(text){
+        var ta= document.createElement( 'textarea' );
+        ta.value=text;
+        ta.style.position='fixed';
+        ta.style.left='-9999px';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        try{
+          document.execCommand('copy');
+          toast('✅ Link copied');
+        } catch(e){
+          toast( 'Copy failed — long press the link' );
+        }
+        document.body.removeChild(ta);
+      }
+
+      window.shareReferral=function(){
+        var text= '🎬 Watch to Earn app\n' + 'Join using my referral link:\n' + referralUrl();
+        var url= 'https://api.whatsapp.com/send?text=' + encodeURIComponent(text);
+        window.location.href=url;
+      };
+
+      window.saveProfile=function(){
+        var name= $('profileName').value.trim();
+        if(!name){
+          toast('Enter your name');
+          return;
+        }
+        localStorage.setItem( 'wte_name', name );
+        toast( '✅ Profile saved' );
+      };
+
+      function init(){
+        saveBalance();
+        drawWheel();
+        updateSpin();
+        updateRef();
+        renderHistory();
+        if($('profileName')){
+          $('profileName').value= localStorage.getItem( 'wte_name' )||'';
+        }
+      
