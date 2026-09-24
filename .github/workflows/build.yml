@@ -22,9 +22,6 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Create Native Android WebView Project
         run: |
           mkdir -p app/src/main/java/com/watchtoearn/app
@@ -173,3 +170,4 @@ jobs:
         with:
           name: WatchToEarn-Release-APK
           path: app/build/outputs/apk/release/app-release-unsigned.apk
+          
