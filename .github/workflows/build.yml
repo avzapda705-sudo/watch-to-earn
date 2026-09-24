@@ -28,6 +28,12 @@ jobs:
 
           cp index.html app/src/main/assets/index.html
 
+          cat << 'EOF' > gradle.properties
+          android.useAndroidX=true
+          android.enableJetifier=true
+          android.suppressUnsupportedCompileSdk=35
+          EOF
+
           cat << 'EOF' > settings.gradle
           pluginManagement {
               repositories {
@@ -361,7 +367,10 @@ jobs:
       - name: Build Release APK
         run: |
           gradle assembleRelease --no-daemon
-          echo "===== APK FILES ====="
+
+      - name: Check APK
+        run: |
+          echo "APK files:"
           find app/build/outputs -type f -name "*.apk" -print
 
       - name: Prepare APK
