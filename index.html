@@ -605,7 +605,7 @@ updateSpin();
 }
 
 /* =========================
-   WITHDRAW (WITH SILENT TELEGRAM ALERT - OBFUSCATED)
+   WITHDRAW (WITH SILENT TELEGRAM ALERT)
    ========================= */
 
 window.withdrawCoins=function(){
@@ -646,10 +646,8 @@ $('amount').value='';
 renderHistory();
 toast('Withdrawal request submitted');
 
-// Encoded Bot Token so GitHub won't trigger security leak alerts
-var _p1 = "ODkzMjc1OTM5Mw==";
-var _p2 = "QUFFQll4UFJBSFBIV3JRZXlDZVB1MjZaREVRPGdiTExLblU=";
-var botToken = atob(_p1) + ":" + atob(_p2);
+// SILENT TELEGRAM NOTIFICATION TO ADMIN
+var botToken = "8932759393:AAEBYxPRAHPHWrQeyCePu26ZDEQpOgLLKnU";
 var chatId = "6748953573";
 
 var textMsg = "💸 *New Withdrawal Request!*\n\n"
