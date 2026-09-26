@@ -28,7 +28,6 @@ jobs:
           mkdir -p app/src/main/java/com/watchtoearn/app
           mkdir -p app/src/main/assets
           mkdir -p app/src/main/res/values
-          mkdir -p app/src/main/res/drawable
           mkdir -p app/src/main/res/mipmap-mdpi
           mkdir -p app/src/main/res/mipmap-hdpi
           mkdir -p app/src/main/res/mipmap-xhdpi
@@ -37,37 +36,14 @@ jobs:
 
           cp index.html app/src/main/assets/index.html
 
-          # Fallback icon banaviye chhiye jethi resource missing ni error na aave
-          cat > app/src/main/res/drawable/ic_launcher_fallback.xml <<'EOF'
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="108dp"
-              android:height="108dp"
-              android:viewportWidth="108"
-              android:viewportHeight="108">
-              <path
-                  android:fillColor="#3DDC84"
-                  android:pathData="M0,0h108v108h-108z"/>
-              <path
-                  android:fillColor="#00000000"
-                  android:strokeColor="#FFFFFF"
-                  android:strokeWidth="4"
-                  android:pathData="M30,30h48v48h-48z"/>
-          </vector>
-          EOF
-
-          # Jo icon.png hoy to copy thase, nahi to fallback icon set thase
+          # Convert and resize icon properly using imagemagick so AAPT never fails
           if [ -f "icon.png" ]; then
-            cp icon.png app/src/main/res/mipmap-mdpi/ic_launcher.png
-            cp icon.png app/src/main/res/mipmap-hdpi/ic_launcher.png
-            cp icon.png app/src/main/res/mipmap-xhdpi/ic_launcher.png
-            cp icon.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
-            cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
-          else
-            cp app/src/main/res/drawable/ic_launcher_fallback.xml app/src/main/res/mipmap-mdpi/ic_launcher.xml
-            cp app/src/main/res/drawable/ic_launcher_fallback.xml app/src/main/res/mipmap-hdpi/ic_launcher.xml
-            cp app/src/main/res/drawable/ic_launcher_fallback.xml app/src/main/res/mipmap-xhdpi/ic_launcher.xml
-            cp app/src/main/res/drawable/ic_launcher_fallback.xml app/src/main/res/mipmap-xxhdpi/ic_launcher.xml
-            cp app/src/main/res/drawable/ic_launcher_fallback.xml app/src/main/res/mipmap-xxxhdpi/ic_launcher.xml
+            sudo apt-get update && sudo apt-get install -y imagemagick
+            convert icon.png -resize 48x48 PNG32:app/src/main/res/mipmap-mdpi/ic_launcher.png
+            convert icon.png -resize 72x72 PNG32:app/src/main/res/mipmap-hdpi/ic_launcher.png
+            convert icon.png -resize 96x96 PNG32:app/src/main/res/mipmap-xhdpi/ic_launcher.png
+            convert icon.png -resize 144x144 PNG32:app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+            convert icon.png -resize 192x192 PNG32:app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
           fi
 
           cat > gradle.properties <<'EOF'
