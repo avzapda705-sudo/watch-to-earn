@@ -33,51 +33,18 @@ jobs:
           mkdir -p app/src/main/res/mipmap-xhdpi
           mkdir -p app/src/main/res/mipmap-xxhdpi
           mkdir -p app/src/main/res/mipmap-xxxhdpi
-          mkdir -p app/src/main/res/mipmap-anydpi-v26
 
           cp index.html app/src/main/assets/index.html
 
+          # 3rd number jevo j exact icon: Direct standard scaling without cutting or adaptive zoom
           if [ -f "icon.png" ]; then
             sudo apt-get update && sudo apt-get install -y imagemagick
-
-            # 1. Standard mipmap launcher icons
             for size in 48:mdpi 72:hdpi 96:xhdpi 144:xxhdpi 192:xxxhdpi; do
               dim="${size%%:*}"
               folder="${size##*:}"
-              convert icon.png -resize "${dim}x${dim}^" -gravity center -extent "${dim}x${dim}" PNG32:app/src/main/res/mipmap-${folder}/ic_launcher.png
-              convert icon.png -resize "${dim}x${dim}^" -gravity center -extent "${dim}x${dim}" PNG32:app/src/main/res/mipmap-${folder}/ic_launcher_round.png
+              convert icon.png -resize "${dim}x${dim}" PNG32:app/src/main/res/mipmap-${folder}/ic_launcher.png
+              convert icon.png -resize "${dim}x${dim}" PNG32:app/src/main/res/mipmap-${folder}/ic_launcher_round.png
             done
-
-            # 2. Edge-to-Edge Adaptive Foreground: Scaled to exactly 86% so full circle is covered without leaving side gaps
-            for size in 108:mdpi 162:hdpi 216:xhdpi 324:xxhdpi 432:xxxhdpi; do
-              canvas="${size%%:*}"
-              folder="${size##*:}"
-              inner=$(( canvas * 93 / 108 ))
-              convert icon.png -resize "${inner}x${inner}^" -gravity center -extent "${canvas}x${canvas}" PNG32:app/src/main/res/mipmap-${folder}/ic_launcher_foreground.png
-            done
-
-            cat > app/src/main/res/values/ic_launcher_background.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <color name="ic_launcher_background">#0a0e27</color>
-          </resources>
-          EOF
-
-            cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-              <background android:drawable="@color/ic_launcher_background" />
-              <foreground android:drawable="@mipmap/ic_launcher_foreground" />
-          </adaptive-icon>
-          EOF
-
-            cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-              <background android:drawable="@color/ic_launcher_background" />
-              <foreground android:drawable="@mipmap/ic_launcher_foreground" />
-          </adaptive-icon>
-          EOF
           fi
 
           cat > gradle.properties <<'EOF'
@@ -127,8 +94,8 @@ jobs:
                   applicationId "com.watchtoearn.app"
                   minSdk 24
                   targetSdk 35
-                  versionCode 8
-                  versionName "1.7"
+                  versionCode 9
+                  versionName "1.8"
               }
 
               compileOptions {
@@ -230,12 +197,15 @@ jobs:
               private boolean isLoadingRewarded = false;
               private boolean isLoadingInterstitial = false;
 
+              // 1. Live Banner Ad ID
               private static final String BANNER_AD_UNIT_ID =
                       "ca-app-pub-5150848800087406/8514535326";
 
+              // 2. Live Rewarded Video ID
               private static final String REWARDED_AD_UNIT_ID =
                       "ca-app-pub-5150848800087406/3645352026";
 
+              // 3. Live Interstitial Ad ID
               private static final String INTERSTITIAL_AD_UNIT_ID =
                       "ca-app-pub-5150848800087406/1725676409";
 
