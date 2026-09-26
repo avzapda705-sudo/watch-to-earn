@@ -11,7 +11,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -104,7 +103,6 @@ jobs:
 
           cat > app/src/main/AndroidManifest.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
-
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
               <uses-permission android:name="android.permission.INTERNET" />
@@ -169,11 +167,13 @@ jobs:
               private AdView bannerAd;
               private RewardedAd rewardedAd;
 
-              private static final String TEST_BANNER_ID =
-                      "ca-app-pub-3940256099942544/6300978111";
+              // તમારી સાચી AdMob IDs
+              // જો બેનર આઈડી ઉપલબ્ધ ન હોય તો નીચેની લાઈન બદલીને તમારી બેનર એડ આઈડી મૂકવી
+              private static final String BANNER_AD_UNIT_ID =
+                      "ca-app-pub-3940256099942544/6300978111"; // હાલ ટેસ્ટ આઈડી રાખી છે
 
-              private static final String TEST_REWARDED_ID =
-                      "ca-app-pub-3940256099942544/5224354917";
+              private static final String REWARDED_AD_UNIT_ID =
+                      "ca-app-pub-5150845800087406/9643312011";
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
@@ -193,68 +193,44 @@ jobs:
                   webView.setWebChromeClient(new WebChromeClient());
 
                   webView.setWebViewClient(new WebViewClient() {
-
                       @Override
-                      public boolean shouldOverrideUrlLoading(
-                              WebView view,
-                              String url) {
-
+                      public boolean shouldOverrideUrlLoading(WebView view, String url) {
                           if (url.startsWith("whatsapp:")
                                   || url.contains("api.whatsapp.com")
                                   || url.startsWith("intent:")) {
-
                               try {
-                                  Intent intent = new Intent(
-                                          Intent.ACTION_VIEW,
-                                          Uri.parse(url)
-                                  );
-
+                                  Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                                   startActivity(intent);
                                   return true;
-
                               } catch (Exception e) {
                                   return false;
                               }
                           }
-
                           return false;
                       }
                   });
 
-                  webView.addJavascriptInterface(
-                          new AdBridge(),
-                          "AndroidAd"
+                  webView.addJavascriptInterface(new AdBridge(), "AndroidAd");
+                  webView.loadUrl("file:///android_asset/index.html");
+
+                  FrameLayout.LayoutParams webParams = new FrameLayout.LayoutParams(
+                          FrameLayout.LayoutParams.MATCH_PARENT,
+                          FrameLayout.LayoutParams.MATCH_PARENT
                   );
-
-                  webView.loadUrl(
-                          "file:///android_asset/index.html"
-                  );
-
-                  FrameLayout.LayoutParams webParams =
-                          new FrameLayout.LayoutParams(
-                                  FrameLayout.LayoutParams.MATCH_PARENT,
-                                  FrameLayout.LayoutParams.MATCH_PARENT
-                          );
-
                   root.addView(webView, webParams);
 
                   bannerAd = new AdView(this);
                   bannerAd.setAdSize(AdSize.BANNER);
-                  bannerAd.setAdUnitId(TEST_BANNER_ID);
+                  bannerAd.setAdUnitId(BANNER_AD_UNIT_ID);
 
-                  AdRequest bannerRequest =
-                          new AdRequest.Builder().build();
-
+                  AdRequest bannerRequest = new AdRequest.Builder().build();
                   bannerAd.loadAd(bannerRequest);
 
-                  FrameLayout.LayoutParams bannerParams =
-                          new FrameLayout.LayoutParams(
-                                  FrameLayout.LayoutParams.MATCH_PARENT,
-                                  FrameLayout.LayoutParams.WRAP_CONTENT
-                          );
-
+                  FrameLayout.LayoutParams bannerParams = new FrameLayout.LayoutParams(
+                          FrameLayout.LayoutParams.MATCH_PARENT,
+                          FrameLayout.LayoutParams.WRAP_CONTENT
+                  );
                   bannerParams.gravity = Gravity.BOTTOM;
-
                   root.addView(bannerAd, bannerParams);
 
                   setContentView(root);
@@ -265,25 +241,17 @@ jobs:
               }
 
               private void loadRewardedAd() {
-
-                  AdRequest request =
-                          new AdRequest.Builder().build();
-
+                  AdRequest request = new AdRequest.Builder().build();
                   RewardedAd.load(
                           this,
-                          TEST_REWARDED_ID,
+                          REWARDED_AD_UNIT_ID,
                           request,
                           new RewardedAdLoadCallback() {
-
                               @Override
-                              public void onAdLoaded(
-                                      @NonNull RewardedAd ad) {
-
+                              public void onAdLoaded(@NonNull RewardedAd ad) {
                                   rewardedAd = ad;
-
                                   rewardedAd.setFullScreenContentCallback(
                                           new FullScreenContentCallback() {
-
                                               @Override
                                               public void onAdDismissedFullScreenContent() {
                                                   rewardedAd = null;
@@ -291,9 +259,7 @@ jobs:
                                               }
 
                                               @Override
-                                              public void onAdFailedToShowFullScreenContent(
-                                                      @NonNull AdError error) {
-
+                                              public void onAdFailedToShowFullScreenContent(@NonNull AdError error) {
                                                   rewardedAd = null;
                                                   loadRewardedAd();
                                               }
@@ -302,9 +268,7 @@ jobs:
                               }
 
                               @Override
-                              public void onAdFailedToLoad(
-                                      @NonNull LoadAdError error) {
-
+                              public void onAdFailedToLoad(@NonNull LoadAdError error) {
                                   rewardedAd = null;
                               }
                           }
@@ -312,20 +276,14 @@ jobs:
               }
 
               public class AdBridge {
-
                   @JavascriptInterface
                   public void showRewarded() {
-
                       runOnUiThread(() -> {
-
                           if (rewardedAd != null) {
-
                               rewardedAd.show(
                                       MainActivity.this,
                                       rewardItem -> {
-
                                           if (webView != null) {
-
                                               webView.post(() ->
                                                       webView.evaluateJavascript(
                                                               "if(window.adMobRewardEarned){window.adMobRewardEarned();}",
@@ -335,9 +293,7 @@ jobs:
                                           }
                                       }
                               );
-
                           } else {
-
                               loadRewardedAd();
                           }
                       });
@@ -346,21 +302,17 @@ jobs:
 
               @Override
               protected void onDestroy() {
-
                   if (bannerAd != null) {
                       bannerAd.destroy();
                   }
-
                   if (webView != null) {
                       webView.destroy();
                   }
-
                   super.onDestroy();
               }
 
               @Override
               public void onBackPressed() {
-
                   if (webView != null && webView.canGoBack()) {
                       webView.goBack();
                   } else {
@@ -374,24 +326,17 @@ jobs:
         shell: bash
         run: |
           set -e
-
           gradle wrapper --gradle-version 8.2.1 --distribution-type bin
-
           chmod +x gradlew
-
           ./gradlew assembleRelease --no-daemon
 
       - name: Verify APK
         shell: bash
         run: |
           set -e
-
           echo "Searching for APK..."
-
           find app/build/outputs -type f -name "*.apk" -print
-
           test -f app/build/outputs/apk/release/app-release.apk
-
           echo "APK successfully created:"
           ls -lh app/build/outputs/apk/release/app-release.apk
 
@@ -399,12 +344,8 @@ jobs:
         shell: bash
         run: |
           set -e
-
           mkdir -p apk-output
-
-          cp app/build/outputs/apk/release/app-release.apk \
-             apk-output/WatchToEarn.apk
-
+          cp app/build/outputs/apk/release/app-release.apk apk-output/WatchToEarn.apk
           ls -lh apk-output/WatchToEarn.apk
 
       - name: Upload APK Artifact
@@ -413,3 +354,4 @@ jobs:
           name: WatchToEarn-APK
           path: apk-output/WatchToEarn.apk
           if-no-files-found: error
+          
