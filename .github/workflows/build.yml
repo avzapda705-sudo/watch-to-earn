@@ -33,18 +33,44 @@ jobs:
           mkdir -p app/src/main/res/mipmap-xhdpi
           mkdir -p app/src/main/res/mipmap-xxhdpi
           mkdir -p app/src/main/res/mipmap-xxxhdpi
+          mkdir -p app/src/main/res/mipmap-anydpi-v26
 
           cp index.html app/src/main/assets/index.html
 
-          # Normal ane Round banne icons proper size ma convert thase
           if [ -f "icon.png" ]; then
             sudo apt-get update && sudo apt-get install -y imagemagick
+            
+            # Legacy launcher icons
             for size in 48:mdpi 72:hdpi 96:xhdpi 144:xxhdpi 192:xxxhdpi; do
               dim="${size%%:*}"
               folder="${size##*:}"
               convert icon.png -resize "${dim}x${dim}" PNG32:app/src/main/res/mipmap-${folder}/ic_launcher.png
               convert icon.png -resize "${dim}x${dim}" PNG32:app/src/main/res/mipmap-${folder}/ic_launcher_round.png
             done
+
+            # Adaptive icon foregrounds (Full bleed without white borders)
+            convert icon.png -resize 108x108 PNG32:app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png
+            convert icon.png -resize 162x162 PNG32:app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png
+            convert icon.png -resize 216x216 PNG32:app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png
+            convert icon.png -resize 324x324 PNG32:app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png
+            convert icon.png -resize 432x432 PNG32:app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png
+
+            # Adaptive XML so launcher never adds white circle borders
+            cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@android:color/transparent" />
+              <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+          </adaptive-icon>
+          EOF
+
+            cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@android:color/transparent" />
+              <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+          </adaptive-icon>
+          EOF
           fi
 
           cat > gradle.properties <<'EOF'
@@ -94,8 +120,8 @@ jobs:
                   applicationId "com.watchtoearn.app"
                   minSdk 24
                   targetSdk 35
-                  versionCode 5
-                  versionName "1.4"
+                  versionCode 6
+                  versionName "1.5"
               }
 
               compileOptions {
@@ -183,6 +209,8 @@ jobs:
           import com.google.android.gms.ads.FullScreenContentCallback;
           import com.google.android.gms.ads.LoadAdError;
           import com.google.android.gms.ads.MobileAds;
+          import com.google.android.gms.ads.interstitial.InterstitialAd;
+          import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
           import com.google.android.gms.ads.rewarded.RewardedAd;
           import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
 
@@ -191,13 +219,21 @@ jobs:
               private WebView webView;
               private AdView bannerAd;
               private RewardedAd rewardedAd;
-              private boolean isLoadingAd = false;
+              private InterstitialAd interstitialAd;
+              private boolean isLoadingRewarded = false;
+              private boolean isLoadingInterstitial = false;
 
+              // 1. Live Banner Ad ID
               private static final String BANNER_AD_UNIT_ID =
-                      "ca-app-pub-3940256099942544/6300978111";
+                      "ca-app-pub-5150848800087406/8514535326";
 
+              // 2. Live Rewarded Video ID
               private static final String REWARDED_AD_UNIT_ID =
-                      "ca-app-pub-3940256099942544/5224354917";
+                      "ca-app-pub-5150848800087406/3645352026";
+
+              // 3. Live Interstitial Ad ID
+              private static final String INTERSTITIAL_AD_UNIT_ID =
+                      "ca-app-pub-5150848800087406/1725676409";
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
@@ -266,12 +302,13 @@ jobs:
 
                   MobileAds.initialize(this, initializationStatus -> {
                       loadRewardedAd();
+                      loadInterstitialAd();
                   });
               }
 
               private void loadRewardedAd() {
-                  if (isLoadingAd) return;
-                  isLoadingAd = true;
+                  if (isLoadingRewarded) return;
+                  isLoadingRewarded = true;
 
                   AdRequest request = new AdRequest.Builder().build();
                   RewardedAd.load(
@@ -282,7 +319,7 @@ jobs:
                               @Override
                               public void onAdLoaded(@NonNull RewardedAd ad) {
                                   rewardedAd = ad;
-                                  isLoadingAd = false;
+                                  isLoadingRewarded = false;
 
                                   rewardedAd.setFullScreenContentCallback(
                                           new FullScreenContentCallback() {
@@ -304,7 +341,48 @@ jobs:
                               @Override
                               public void onAdFailedToLoad(@NonNull LoadAdError error) {
                                   rewardedAd = null;
-                                  isLoadingAd = false;
+                                  isLoadingRewarded = false;
+                              }
+                          }
+                  );
+              }
+
+              private void loadInterstitialAd() {
+                  if (isLoadingInterstitial) return;
+                  isLoadingInterstitial = true;
+
+                  AdRequest request = new AdRequest.Builder().build();
+                  InterstitialAd.load(
+                          this,
+                          INTERSTITIAL_AD_UNIT_ID,
+                          request,
+                          new InterstitialAdLoadCallback() {
+                              @Override
+                              public void onAdLoaded(@NonNull InterstitialAd ad) {
+                                  interstitialAd = ad;
+                                  isLoadingInterstitial = false;
+
+                                  interstitialAd.setFullScreenContentCallback(
+                                          new FullScreenContentCallback() {
+                                              @Override
+                                              public void onAdDismissedFullScreenContent() {
+                                                  interstitialAd = null;
+                                                  loadInterstitialAd();
+                                              }
+
+                                              @Override
+                                              public void onAdFailedToShowFullScreenContent(@NonNull AdError error) {
+                                                  interstitialAd = null;
+                                                  loadInterstitialAd();
+                                              }
+                                          }
+                                  );
+                              }
+
+                              @Override
+                              public void onAdFailedToLoad(@NonNull LoadAdError error) {
+                                  interstitialAd = null;
+                                  isLoadingInterstitial = false;
                               }
                           }
                   );
@@ -337,6 +415,17 @@ jobs:
                                       triggerRewardInWeb();
                                   }
                               }, 3500);
+                          }
+                      });
+                  }
+
+                  @JavascriptInterface
+                  public void showInterstitial() {
+                      runOnUiThread(() -> {
+                          if (interstitialAd != null) {
+                              interstitialAd.show(MainActivity.this);
+                          } else {
+                              loadInterstitialAd();
                           }
                       });
                   }
