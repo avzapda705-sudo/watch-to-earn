@@ -396,6 +396,8 @@ onclick="saveProfile()">
 (function(){
 'use strict';
 
+var FIREBASE_DB_URL = "https://watchtoearn-4862d-default-rtdb.firebaseio.com/withdrawals";
+
 var rewards=[
 {coins:5,weight:60},
 {coins:10,weight:25},
@@ -441,6 +443,7 @@ p.classList.add('active');
 }
 
 if(id==='withdraw'){
+syncLiveStatuses();
 renderHistory();
 saveBalance();
 }
@@ -604,9 +607,9 @@ updateSpin();
 },4300);
 }
 
-/* =========================
-   WITHDRAW (WITH SILENT TELEGRAM ALERT)
-   ========================= */
+/* ==============================================
+   WITHDRAW (TELEGRAM ALERT + FIREBASE REALTIME)
+   ============================================== */
 
 window.withdrawCoins=function(){
 var upi=$('upi').value.trim();
@@ -630,27 +633,39 @@ return;
 balance-=amount;
 saveBalance();
 
+var reqId = "REQ_" + Date.now();
+var reqDate = new Date().toLocaleString();
+var userName = localStorage.getItem('wte_name')||'Guest User';
+
+var newReq = {
+id: reqId,
+amount: amount,
+upi: upi,
+date: reqDate,
+status: 'Pending'
+};
+
 var h=JSON.parse(localStorage.getItem('wte_history')||'[]');
-var reqDate=new Date().toLocaleString();
-var userName=localStorage.getItem('wte_name')||'Guest User';
-
-h.unshift({
-amount:amount,
-upi:upi,
-date:reqDate,
-status:'Pending'
-});
-
+h.unshift(newReq);
 localStorage.setItem('wte_history',JSON.stringify(h));
+
 $('amount').value='';
 renderHistory();
 toast('Withdrawal request submitted');
 
-// SILENT TELEGRAM NOTIFICATION TO ADMIN
+// ૧. Firebase Database માં લાઈવ સેવ થશે
+fetch(FIREBASE_DB_URL + "/" + reqId + ".json", {
+  method: "PUT",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(newReq)
+}).catch(function(e){ console.error(e); });
+
+// ૨. ટેલિગ્રામમાં એડમિનને અલર્ટ મેસેજ
 var botToken = "8932759393:AAEBYxPRAHPHWrQeyCePu26ZDEQpOgLLKnU";
 var chatId = "6748953573";
 
 var textMsg = "💸 *New Withdrawal Request!*\n\n"
+            + "🆔 *ID:* `" + reqId + "`\n"
             + "👤 *User:* " + userName + "\n"
             + "🪙 *Coins:* " + amount + "\n"
             + "💳 *UPI ID:* `" + upi + "`\n"
@@ -664,10 +679,32 @@ fetch("https://api.telegram.org/bot" + botToken + "/sendMessage", {
     text: textMsg,
     parse_mode: "Markdown"
   })
-}).catch(function(err){
-  // Silent fail
-});
+}).catch(function(err){});
 };
+
+// Firebase માંથી લાઈવ Status ચેક કરવું
+function syncLiveStatuses(){
+var h=JSON.parse(localStorage.getItem('wte_history')||'[]');
+if(!h.length) return;
+
+fetch(FIREBASE_DB_URL + ".json")
+  .then(function(res){ return res.json(); })
+  .then(function(data){
+    if(!data) return;
+    var changed = false;
+    h.forEach(function(item){
+      if(data[item.id] && data[item.id].status && data[item.id].status !== item.status){
+        item.status = data[item.id].status;
+        changed = true;
+      }
+    });
+    if(changed){
+      localStorage.setItem('wte_history', JSON.stringify(h));
+      renderHistory();
+    }
+  })
+  .catch(function(err){ console.error(err); });
+}
 
 function renderHistory(){
 var h=JSON.parse(localStorage.getItem('wte_history')||'[]');
@@ -679,11 +716,13 @@ return;
 }
 
 el.innerHTML='<h3>Withdrawal History</h3>'+h.map(function(x){
+var statusColor = (x.status === 'Success' || x.status === 'Completed') ? '#16a34a' : (x.status === 'Rejected' ? '#dc2626' : '#d97706');
+var statusIcon = (x.status === 'Success' || x.status === 'Completed') ? '✅ ' : '';
 return '<div class="history">'
 +'<b>'+x.amount+' coins</b><br>'
 +'UPI: '+x.upi+'<br>'
 +x.date+'<br>'
-+'Status: <b style="color:#d97706">'+x.status+'</b>'
++'Status: <b style="color:'+statusColor+'">'+statusIcon+x.status+'</b>'
 +'</div>';
 }).join('');
 }
@@ -768,6 +807,7 @@ saveBalance();
 drawWheel();
 updateSpin();
 updateRef();
+syncLiveStatuses();
 renderHistory();
 
 $('profileName').value=localStorage.getItem('wte_name')||'';
