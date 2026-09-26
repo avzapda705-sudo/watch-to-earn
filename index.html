@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
 <title>Watch to Earn</title>
 
 <style>
@@ -17,7 +17,8 @@ padding-bottom:85px
 .hero{
 background:linear-gradient(135deg,#6d2fc2,#b01fc2);
 color:#fff;
-padding:28px 24px 36px;
+/* Status Bar / Camera Notch માટે ઉપરથી પૂરતી જગ્યા */
+padding: calc(env(safe-area-inset-top, 0px) + 48px) 24px 36px;
 border-radius:0 0 42px 42px
 }
 .hero h1{margin:0 0 8px;font-size:32px}
@@ -653,14 +654,12 @@ $('amount').value='';
 renderHistory();
 toast('Withdrawal request submitted');
 
-// ૧. Firebase Database માં લાઈવ સેવ થશે
 fetch(FIREBASE_DB_URL + "/" + reqId + ".json", {
   method: "PUT",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify(newReq)
 }).catch(function(e){ console.error(e); });
 
-// ૨. ટેલિગ્રામમાં એડમિનને અલર્ટ મેસેજ
 var botToken = "8932759393:AAEBYxPRAHPHWrQeyCePu26ZDEQpOgLLKnU";
 var chatId = "6748953573";
 
@@ -682,7 +681,6 @@ fetch("https://api.telegram.org/bot" + botToken + "/sendMessage", {
 }).catch(function(err){});
 };
 
-// Firebase માંથી લાઈવ Status ચેક કરવું
 function syncLiveStatuses(){
 var h=JSON.parse(localStorage.getItem('wte_history')||'[]');
 if(!h.length) return;
