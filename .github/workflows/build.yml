@@ -28,8 +28,26 @@ jobs:
           mkdir -p app/src/main/java/com/watchtoearn/app
           mkdir -p app/src/main/assets
           mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/mipmap-mdpi
+          mkdir -p app/src/main/res/mipmap-hdpi
+          mkdir -p app/src/main/res/mipmap-xhdpi
+          mkdir -p app/src/main/res/mipmap-xxhdpi
+          mkdir -p app/src/main/res/mipmap-xxxhdpi
 
           cp index.html app/src/main/assets/index.html
+
+          if [ -f "icon.png" ]; then
+            cp icon.png app/src/main/res/mipmap-mdpi/ic_launcher.png
+            cp icon.png app/src/main/res/mipmap-hdpi/ic_launcher.png
+            cp icon.png app/src/main/res/mipmap-xhdpi/ic_launcher.png
+            cp icon.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+            cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+            cp icon.png app/src/main/res/mipmap-mdpi/ic_launcher_round.png
+            cp icon.png app/src/main/res/mipmap-hdpi/ic_launcher_round.png
+            cp icon.png app/src/main/res/mipmap-xhdpi/ic_launcher_round.png
+            cp icon.png app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
+            cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
+          fi
 
           cat > gradle.properties <<'EOF'
           android.useAndroidX=true
@@ -111,6 +129,8 @@ jobs:
               <application
                   android:allowBackup="true"
                   android:label="Watch To Earn"
+                  android:icon="@mipmap/ic_launcher"
+                  android:roundIcon="@mipmap/ic_launcher_round"
                   android:supportsRtl="true"
                   android:theme="@android:style/Theme.NoTitleBar">
 
