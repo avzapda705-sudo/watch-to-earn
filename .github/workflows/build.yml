@@ -39,8 +39,8 @@ jobs:
 
           if [ -f "icon.png" ]; then
             sudo apt-get update && sudo apt-get install -y imagemagick
-            
-            # Legacy launcher icons
+
+            # 1. Legacy full square/round icons
             for size in 48:mdpi 72:hdpi 96:xhdpi 144:xxhdpi 192:xxxhdpi; do
               dim="${size%%:*}"
               folder="${size##*:}"
@@ -48,18 +48,27 @@ jobs:
               convert icon.png -resize "${dim}x${dim}" PNG32:app/src/main/res/mipmap-${folder}/ic_launcher_round.png
             done
 
-            # Adaptive icon foregrounds (Full bleed without white borders)
-            convert icon.png -resize 108x108 PNG32:app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png
-            convert icon.png -resize 162x162 PNG32:app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png
-            convert icon.png -resize 216x216 PNG32:app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png
-            convert icon.png -resize 324x324 PNG32:app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png
-            convert icon.png -resize 432x432 PNG32:app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png
+            # 2. Perfect Safe-Zone Foreground: 72dp icon inside 108dp canvas (No zoom / no cutting)
+            for size in 108:mdpi 162:hdpi 216:xhdpi 324:xxhdpi 432:xxxhdpi; do
+              canvas="${size%%:*}"
+              folder="${size##*:}"
+              inner=$(( canvas * 72 / 108 ))
+              convert icon.png -resize "${inner}x${inner}" -background none -gravity center -extent "${canvas}x${canvas}" PNG32:app/src/main/res/mipmap-${folder}/ic_launcher_foreground.png
+            done
 
-            # Adaptive XML so launcher never adds white circle borders
+            # Background color for adaptive icon
+            cat > app/src/main/res/values/ic_launcher_background.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="ic_launcher_background">#0b1226</color>
+          </resources>
+          EOF
+
+            # Adaptive XML mapping
             cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-              <background android:drawable="@android:color/transparent" />
+              <background android:drawable="@color/ic_launcher_background" />
               <foreground android:drawable="@mipmap/ic_launcher_foreground" />
           </adaptive-icon>
           EOF
@@ -67,7 +76,7 @@ jobs:
             cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-              <background android:drawable="@android:color/transparent" />
+              <background android:drawable="@color/ic_launcher_background" />
               <foreground android:drawable="@mipmap/ic_launcher_foreground" />
           </adaptive-icon>
           EOF
@@ -120,8 +129,8 @@ jobs:
                   applicationId "com.watchtoearn.app"
                   minSdk 24
                   targetSdk 35
-                  versionCode 6
-                  versionName "1.5"
+                  versionCode 7
+                  versionName "1.6"
               }
 
               compileOptions {
@@ -223,15 +232,12 @@ jobs:
               private boolean isLoadingRewarded = false;
               private boolean isLoadingInterstitial = false;
 
-              // 1. Live Banner Ad ID
               private static final String BANNER_AD_UNIT_ID =
                       "ca-app-pub-5150848800087406/8514535326";
 
-              // 2. Live Rewarded Video ID
               private static final String REWARDED_AD_UNIT_ID =
                       "ca-app-pub-5150848800087406/3645352026";
 
-              // 3. Live Interstitial Ad ID
               private static final String INTERSTITIAL_AD_UNIT_ID =
                       "ca-app-pub-5150848800087406/1725676409";
 
