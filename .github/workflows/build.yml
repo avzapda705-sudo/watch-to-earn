@@ -40,7 +40,7 @@ jobs:
           if [ -f "icon.png" ]; then
             sudo apt-get update && sudo apt-get install -y imagemagick
 
-            # Legacy icons (Full center-fill)
+            # Standard mipmap launcher icons
             for size in 48:mdpi 72:hdpi 96:xhdpi 144:xxhdpi 192:xxxhdpi; do
               dim="${size%%:*}"
               folder="${size##*:}"
@@ -48,17 +48,19 @@ jobs:
               convert icon.png -resize "${dim}x${dim}^" -gravity center -extent "${dim}x${dim}" PNG32:app/src/main/res/mipmap-${folder}/ic_launcher_round.png
             done
 
-            # Adaptive foreground (Proper edge-to-edge center fit)
+            # Adaptive foreground scaled to fit safe circle without cropping text
             for size in 108:mdpi 162:hdpi 216:xhdpi 324:xxhdpi 432:xxxhdpi; do
               canvas="${size%%:*}"
               folder="${size##*:}"
-              convert icon.png -resize "${canvas}x${canvas}" -gravity center -extent "${canvas}x${canvas}" PNG32:app/src/main/res/mipmap-${folder}/ic_launcher_foreground.png
+              inner=$(( canvas * 88 / 108 ))
+              convert icon.png -resize "${inner}x${inner}" -background none -gravity center -extent "${canvas}x${canvas}" PNG32:app/src/main/res/mipmap-${folder}/ic_launcher_foreground.png
             done
 
+            # Background color matching image navy tone
             cat > app/src/main/res/values/ic_launcher_background.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
-              <color name="ic_launcher_background">#0a1026</color>
+              <color name="ic_launcher_background">#050b1e</color>
           </resources>
           EOF
 
@@ -126,8 +128,8 @@ jobs:
                   applicationId "com.watchtoearn.app"
                   minSdk 24
                   targetSdk 35
-                  versionCode 11
-                  versionName "2.0"
+                  versionCode 13
+                  versionName "2.2"
               }
 
               compileOptions {
@@ -482,11 +484,8 @@ jobs:
         shell: bash
         run: |
           set -e
-          echo "Searching for APK..."
           find app/build/outputs -type f -name "*.apk" -print
           test -f app/build/outputs/apk/release/app-release.apk
-          echo "APK successfully created:"
-          ls -lh app/build/outputs/apk/release/app-release.apk
 
       - name: Prepare APK
         shell: bash
@@ -494,11 +493,11 @@ jobs:
           set -e
           mkdir -p apk-output
           cp app/build/outputs/apk/release/app-release.apk apk-output/WatchToEarn.apk
-          ls -lh apk-output/WatchToEarn.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: WatchToEarn-APK
           path: apk-output/WatchToEarn.apk
-          if-no-files-found: erro
+          if-no-files-found: error
+          
