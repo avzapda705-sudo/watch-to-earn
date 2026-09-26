@@ -20,6 +20,11 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.2.1
+
       - name: Create Android Project
         shell: bash
         run: |
@@ -40,7 +45,6 @@ jobs:
           if [ -f "icon.png" ]; then
             sudo apt-get update && sudo apt-get install -y imagemagick
 
-            # Standard mipmap launcher icons
             for size in 48:mdpi 72:hdpi 96:xhdpi 144:xxhdpi 192:xxxhdpi; do
               dim="${size%%:*}"
               folder="${size##*:}"
@@ -48,7 +52,6 @@ jobs:
               convert icon.png -resize "${dim}x${dim}^" -gravity center -extent "${dim}x${dim}" PNG32:app/src/main/res/mipmap-${folder}/ic_launcher_round.png
             done
 
-            # Adaptive foreground scaled to fit safe circle without cropping text
             for size in 108:mdpi 162:hdpi 216:xhdpi 324:xxhdpi 432:xxxhdpi; do
               canvas="${size%%:*}"
               folder="${size##*:}"
@@ -56,7 +59,6 @@ jobs:
               convert icon.png -resize "${inner}x${inner}" -background none -gravity center -extent "${canvas}x${canvas}" PNG32:app/src/main/res/mipmap-${folder}/ic_launcher_foreground.png
             done
 
-            # Background color matching image navy tone
             cat > app/src/main/res/values/ic_launcher_background.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
@@ -164,7 +166,6 @@ jobs:
                   android:icon="@mipmap/ic_launcher"
                   android:roundIcon="@mipmap/ic_launcher_round"
                   android:supportsRtl="true"
-                  android:hardwareAccelerated="true"
                   android:theme="@android:style/Theme.NoTitleBar">
 
                   <activity
@@ -217,25 +218,25 @@ jobs:
           public class MainActivity extends Activity {
 
               private WebView webView;
-              private BannerView bannerAd;
+              private BannerView bottomBanner;
+              private FrameLayout root;
+
+              // Unity Ads Setup
+              private static final String UNITY_GAME_ID = "800381847";
+              private static final boolean TEST_MODE = false; // Live mode (Test માટે true રાખી શકો છો)
+
+              private static final String BANNER_PLACEMENT = "BP_Banner_Android";
+              private static final String REWARDED_PLACEMENT = "BP_Rewarded_Android";
+              private static final String INTERSTITIAL_PLACEMENT = "BP_Interstitial_Android";
+
               private boolean isRewardedLoaded = false;
               private boolean isInterstitialLoaded = false;
-              private boolean isLoadingRewarded = false;
-              private boolean isLoadingInterstitial = false;
-
-              // Unity Ads credentials
-              private static final String UNITY_GAME_ID = "500381847";
-              private static final boolean TEST_MODE = false;
-
-              private static final String BANNER_PLACEMENT_ID = "BP_Banner_Android";
-              private static final String REWARDED_PLACEMENT_ID = "BP_Rewarded_Android";
-              private static final String INTERSTITIAL_PLACEMENT_ID = "BP_Interstitial_Android";
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
 
-                  FrameLayout root = new FrameLayout(this);
+                  root = new FrameLayout(this);
 
                   webView = new WebView(this);
                   WebSettings settings = webView.getSettings();
@@ -280,84 +281,74 @@ jobs:
                   webParams.bottomMargin = bannerHeightPx;
                   root.addView(webView, webParams);
 
-                  bannerAd = new BannerView(this, BANNER_PLACEMENT_ID, new UnityBannerSize(320, 50));
-                  bannerAd.setListener(new BannerView.IListener() {
-                      @Override
-                      public void onBannerLoaded(BannerView bannerAdView) {}
-
-                      @Override
-                      public void onBannerClick(BannerView bannerAdView) {}
-
-                      @Override
-                      public void onBannerFailedToLoad(BannerView bannerAdView, BannerErrorInfo errorInfo) {}
-
-                      @Override
-                      public void onBannerLeftApplication(BannerView bannerAdView) {}
-
-                      @Override
-                      public void onBannerShown(BannerView bannerAdView) {}
-                  });
-
-                  FrameLayout.LayoutParams bannerParams = new FrameLayout.LayoutParams(
-                          FrameLayout.LayoutParams.MATCH_PARENT,
-                          FrameLayout.LayoutParams.WRAP_CONTENT
-                  );
-                  bannerParams.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
-                  root.addView(bannerAd, bannerParams);
-
                   setContentView(root);
 
+                  initUnityAds();
+              }
+
+              private void initUnityAds() {
                   UnityAds.initialize(getApplicationContext(), UNITY_GAME_ID, TEST_MODE, new IUnityAdsInitializationListener() {
                       @Override
                       public void onInitializationComplete() {
-                          bannerAd.load();
                           loadRewardedAd();
                           loadInterstitialAd();
+                          loadBannerAd();
                       }
 
                       @Override
                       public void onInitializationFailed(UnityAds.UnityAdsInitializationError error, String message) {
-                          new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                              UnityAds.initialize(getApplicationContext(), UNITY_GAME_ID, TEST_MODE, this);
-                          }, 5000);
                       }
                   });
               }
 
-              private void loadRewardedAd() {
-                  if (isLoadingRewarded) return;
-                  isLoadingRewarded = true;
+              private void loadBannerAd() {
+                  runOnUiThread(() -> {
+                      bottomBanner = new BannerView(MainActivity.this, BANNER_PLACEMENT, new UnityBannerSize(320, 50));
+                      bottomBanner.setListener(new BannerView.IListener() {
+                          @Override
+                          public void onBannerLoaded(BannerView bannerAdView) {}
+                          @Override
+                          public void onBannerClick(BannerView bannerAdView) {}
+                          @Override
+                          public void onBannerFailedToLoad(BannerView bannerAdView, BannerErrorInfo errorInfo) {}
+                          @Override
+                          public void onBannerLeftApplication(BannerView bannerView) {}
+                      });
 
-                  UnityAds.load(REWARDED_PLACEMENT_ID, new IUnityAdsLoadListener() {
+                      FrameLayout.LayoutParams bannerParams = new FrameLayout.LayoutParams(
+                              FrameLayout.LayoutParams.MATCH_PARENT,
+                              FrameLayout.LayoutParams.WRAP_CONTENT
+                      );
+                      bannerParams.gravity = Gravity.BOTTOM;
+                      root.addView(bottomBanner, bannerParams);
+                      bottomBanner.load();
+                  });
+              }
+
+              private void loadRewardedAd() {
+                  UnityAds.load(REWARDED_PLACEMENT, new IUnityAdsLoadListener() {
                       @Override
                       public void onUnityAdsAdLoaded(String placementId) {
                           isRewardedLoaded = true;
-                          isLoadingRewarded = false;
                       }
 
                       @Override
                       public void onUnityAdsFailedToLoad(String placementId, UnityAds.UnityAdsLoadError error, String message) {
                           isRewardedLoaded = false;
-                          isLoadingRewarded = false;
                       }
                   });
               }
 
               private void loadInterstitialAd() {
-                  if (isLoadingInterstitial) return;
-                  isLoadingInterstitial = true;
-
-                  UnityAds.load(INTERSTITIAL_PLACEMENT_ID, new IUnityAdsLoadListener() {
+                  UnityAds.load(INTERSTITIAL_PLACEMENT, new IUnityAdsLoadListener() {
                       @Override
                       public void onUnityAdsAdLoaded(String placementId) {
                           isInterstitialLoaded = true;
-                          isLoadingInterstitial = false;
                       }
 
                       @Override
                       public void onUnityAdsFailedToLoad(String placementId, UnityAds.UnityAdsLoadError error, String message) {
                           isInterstitialLoaded = false;
-                          isLoadingInterstitial = false;
                       }
                   });
               }
@@ -367,43 +358,18 @@ jobs:
                   public void showRewarded() {
                       runOnUiThread(() -> {
                           if (isRewardedLoaded) {
-                              UnityAds.show(MainActivity.this, REWARDED_PLACEMENT_ID, new UnityAdsShowOptions(), new IUnityAdsShowListener() {
-                                  @Override
-                                  public void onUnityAdsShowFailure(String placementId, UnityAds.UnityAdsShowError error, String message) {
-                                      isRewardedLoaded = false;
-                                      loadRewardedAd();
-                                  }
-
-                                  @Override
-                                  public void onUnityAdsShowStart(String placementId) {}
-
-                                  @Override
-                                  public void onUnityAdsShowClick(String placementId) {}
-
-                                  @Override
-                                  public void onUnityAdsShowComplete(String placementId, UnityAds.UnityAdsShowCompletionState state) {
-                                      isRewardedLoaded = false;
-                                      loadRewardedAd();
-                                      if (state == UnityAds.UnityAdsShowCompletionState.COMPLETED) {
-                                          triggerRewardInWeb();
-                                      }
-                                  }
-                              });
+                              showUnityRewarded();
                           } else {
-                              Toast.makeText(
-                                      MainActivity.this,
-                                      "Loading ad... Please wait 3 seconds",
-                                      Toast.LENGTH_SHORT
-                              ).show();
+                              Toast.makeText(MainActivity.this, "Loading ad... Please wait", Toast.LENGTH_SHORT).show();
                               loadRewardedAd();
 
                               new Handler(Looper.getMainLooper()).postDelayed(() -> {
                                   if (isRewardedLoaded) {
-                                      showRewarded();
+                                      showUnityRewarded();
                                   } else {
                                       triggerRewardInWeb();
                                   }
-                              }, 3500);
+                              }, 3000);
                           }
                       });
                   }
@@ -412,30 +378,39 @@ jobs:
                   public void showInterstitial() {
                       runOnUiThread(() -> {
                           if (isInterstitialLoaded) {
-                              UnityAds.show(MainActivity.this, INTERSTITIAL_PLACEMENT_ID, new UnityAdsShowOptions(), new IUnityAdsShowListener() {
-                                  @Override
-                                  public void onUnityAdsShowFailure(String placementId, UnityAds.UnityAdsShowError error, String message) {
-                                      isInterstitialLoaded = false;
-                                      loadInterstitialAd();
-                                  }
-
-                                  @Override
-                                  public void onUnityAdsShowStart(String placementId) {}
-
-                                  @Override
-                                  public void onUnityAdsShowClick(String placementId) {}
-
-                                  @Override
-                                  public void onUnityAdsShowComplete(String placementId, UnityAds.UnityAdsShowCompletionState state) {
-                                      isInterstitialLoaded = false;
-                                      loadInterstitialAd();
-                                  }
-                              });
+                              UnityAds.show(MainActivity.this, INTERSTITIAL_PLACEMENT, new UnityAdsShowOptions(), null);
+                              isInterstitialLoaded = false;
+                              loadInterstitialAd();
                           } else {
                               loadInterstitialAd();
                           }
                       });
                   }
+              }
+
+              private void showUnityRewarded() {
+                  UnityAds.show(MainActivity.this, REWARDED_PLACEMENT, new UnityAdsShowOptions(), new IUnityAdsShowListener() {
+                      @Override
+                      public void onUnityAdsShowFailure(String placementId, UnityAds.UnityAdsShowError error, String message) {
+                          isRewardedLoaded = false;
+                          loadRewardedAd();
+                      }
+
+                      @Override
+                      public void onUnityAdsShowStart(String placementId) {}
+
+                      @Override
+                      public void onUnityAdsShowClick(String placementId) {}
+
+                      @Override
+                      public void onUnityAdsShowComplete(String placementId, UnityAds.UnityAdsShowCompletionState state) {
+                          isRewardedLoaded = false;
+                          loadRewardedAd();
+                          if (state == UnityAds.UnityAdsShowCompletionState.COMPLETED) {
+                              triggerRewardInWeb();
+                          }
+                      }
+                  });
               }
 
               private void triggerRewardInWeb() {
@@ -451,8 +426,8 @@ jobs:
 
               @Override
               protected void onDestroy() {
-                  if (bannerAd != null) {
-                      bannerAd.destroy();
+                  if (bottomBanner != null) {
+                      bottomBanner.destroy();
                   }
                   if (webView != null) {
                       webView.destroy();
@@ -491,4 +466,12 @@ jobs:
         run: |
           set -e
           mkdir -p apk-output
-          cp app/build/outpu
+          cp app/build/outputs/apk/release/app-release.apk apk-output/WatchToEarn.apk
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WatchToEarn-APK
+          path: apk-output/WatchToEarn.apk
+          if-no-files-found: error
+          
