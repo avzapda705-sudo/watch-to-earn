@@ -416,8 +416,7 @@ return document.getElementById(id);
 function saveBalance(){
 localStorage.setItem('wte_coins',String(balance));
 $('balance').textContent=balance;
-if($('withdrawBalance')){
-$('withdrawBalance').textContent=balance;
+if($('withdrawBalance')){$('withdrawBalance').textContent=balance;
 }
 }
 
@@ -534,11 +533,9 @@ ctx.fillText('SPIN',cx,cy+8);
 window.triggerAdMob=function(type){
 pendingRewardType=type;
 
-// Call Android Native AdMob Bridge
 if(window.AndroidAd && typeof window.AndroidAd.showRewarded==='function'){
 window.AndroidAd.showRewarded();
 }else{
-// Fallback if tested in web browser
 toast('Ad loaded in demo mode');
 setTimeout(function(){
 window.adMobRewardEarned();
@@ -546,7 +543,6 @@ window.adMobRewardEarned();
 }
 };
 
-// Android Native calls this function upon complete ad view
 window.adMobRewardEarned=function(){
 if(!pendingRewardType) return;
 
@@ -609,7 +605,7 @@ updateSpin();
 }
 
 /* =========================
-   WITHDRAW
+   WITHDRAW (WITH SILENT TELEGRAM ALERT)
    ========================= */
 
 window.withdrawCoins=function(){
@@ -635,10 +631,13 @@ balance-=amount;
 saveBalance();
 
 var h=JSON.parse(localStorage.getItem('wte_history')||'[]');
+var reqDate=new Date().toLocaleString();
+var userName=localStorage.getItem('wte_name')||'Guest User';
+
 h.unshift({
 amount:amount,
 upi:upi,
-date:new Date().toLocaleString(),
+date:reqDate,
 status:'Pending'
 });
 
@@ -646,6 +645,28 @@ localStorage.setItem('wte_history',JSON.stringify(h));
 $('amount').value='';
 renderHistory();
 toast('Withdrawal request submitted');
+
+// SILENT TELEGRAM NOTIFICATION TO ADMIN
+var botToken = "8932759393:AAEBYxPRAHPHWrQeyCePu26ZDEQpOgLLKnU";
+var chatId = "6748953573";
+
+var textMsg = "💸 *New Withdrawal Request!*\n\n"
+            + "👤 *User:* " + userName + "\n"
+            + "🪙 *Coins:* " + amount + "\n"
+            + "💳 *UPI ID:* `" + upi + "`\n"
+            + "📅 *Date:* " + reqDate;
+
+fetch("https://api.telegram.org/bot" + botToken + "/sendMessage", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    chat_id: chatId,
+    text: textMsg,
+    parse_mode: "Markdown"
+  })
+}).catch(function(err){
+  // Silent fail
+});
 };
 
 function renderHistory(){
@@ -685,8 +706,7 @@ return location.href.split('?')[0]+'?ref='+encodeURIComponent(referralCode());
 }
 
 function updateRef(){
-$('refCode').textContent=referralCode();
-$('refLink').textContent=referralUrl();
+$('refCode').textContent=referralCode();$('refLink').textContent=referralUrl();
 }
 
 window.copyReferral=function(){
