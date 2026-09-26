@@ -195,8 +195,8 @@ jobs:
           import android.os.Bundle;
           import android.os.Handler;
           import android.os.Looper;
+          import android.util.TypedValue;
           import android.view.Gravity;
-          import android.view.View;
           import android.webkit.JavascriptInterface;
           import android.webkit.WebChromeClient;
           import android.webkit.WebSettings;
@@ -217,25 +217,25 @@ jobs:
           public class MainActivity extends Activity {
 
               private WebView webView;
-              private FrameLayout root;
-              private BannerView bannerView;
+              private BannerView bannerAd;
+              private boolean isRewardedLoaded = false;
+              private boolean isInterstitialLoaded = false;
+              private boolean isLoadingRewarded = false;
+              private boolean isLoadingInterstitial = false;
 
               // Unity Ads credentials
               private static final String UNITY_GAME_ID = "500381847";
               private static final boolean TEST_MODE = false;
 
+              private static final String BANNER_PLACEMENT_ID = "BP_Banner_Android";
               private static final String REWARDED_PLACEMENT_ID = "BP_Rewarded_Android";
               private static final String INTERSTITIAL_PLACEMENT_ID = "BP_Interstitial_Android";
-              private static final String BANNER_PLACEMENT_ID = "BP_Banner_Android";
-
-              private boolean isRewardedLoaded = false;
-              private boolean isInterstitialLoaded = false;
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
 
-                  root = new FrameLayout(this);
+                  FrameLayout root = new FrameLayout(this);
 
                   webView = new WebView(this);
                   WebSettings settings = webView.getSettings();
@@ -267,21 +267,52 @@ jobs:
                   webView.addJavascriptInterface(new AdBridge(), "AndroidAd");
                   webView.loadUrl("file:///android_asset/index.html");
 
+                  int bannerHeightPx = (int) TypedValue.applyDimension(
+                          TypedValue.COMPLEX_UNIT_DIP,
+                          50,
+                          getResources().getDisplayMetrics()
+                  );
+
                   FrameLayout.LayoutParams webParams = new FrameLayout.LayoutParams(
                           FrameLayout.LayoutParams.MATCH_PARENT,
                           FrameLayout.LayoutParams.MATCH_PARENT
                   );
+                  webParams.bottomMargin = bannerHeightPx;
                   root.addView(webView, webParams);
+
+                  bannerAd = new BannerView(this, BANNER_PLACEMENT_ID, new UnityBannerSize(320, 50));
+                  bannerAd.setListener(new BannerView.IListener() {
+                      @Override
+                      public void onBannerLoaded(BannerView bannerAdView) {}
+
+                      @Override
+                      public void onBannerClick(BannerView bannerAdView) {}
+
+                      @Override
+                      public void onBannerFailedToLoad(BannerView bannerAdView, BannerErrorInfo errorInfo) {}
+
+                      @Override
+                      public void onBannerLeftApplication(BannerView bannerAdView) {}
+
+                      @Override
+                      public void onBannerShown(BannerView bannerAdView) {}
+                  });
+
+                  FrameLayout.LayoutParams bannerParams = new FrameLayout.LayoutParams(
+                          FrameLayout.LayoutParams.MATCH_PARENT,
+                          FrameLayout.LayoutParams.WRAP_CONTENT
+                  );
+                  bannerParams.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+                  root.addView(bannerAd, bannerParams);
 
                   setContentView(root);
 
-                  // Initialize Unity Ads
                   UnityAds.initialize(getApplicationContext(), UNITY_GAME_ID, TEST_MODE, new IUnityAdsInitializationListener() {
                       @Override
                       public void onInitializationComplete() {
+                          bannerAd.load();
                           loadRewardedAd();
                           loadInterstitialAd();
-                          loadBannerAd();
                       }
 
                       @Override
@@ -294,48 +325,40 @@ jobs:
               }
 
               private void loadRewardedAd() {
+                  if (isLoadingRewarded) return;
+                  isLoadingRewarded = true;
+
                   UnityAds.load(REWARDED_PLACEMENT_ID, new IUnityAdsLoadListener() {
                       @Override
                       public void onUnityAdsAdLoaded(String placementId) {
                           isRewardedLoaded = true;
+                          isLoadingRewarded = false;
                       }
 
                       @Override
                       public void onUnityAdsFailedToLoad(String placementId, UnityAds.UnityAdsLoadError error, String message) {
                           isRewardedLoaded = false;
+                          isLoadingRewarded = false;
                       }
                   });
               }
 
               private void loadInterstitialAd() {
+                  if (isLoadingInterstitial) return;
+                  isLoadingInterstitial = true;
+
                   UnityAds.load(INTERSTITIAL_PLACEMENT_ID, new IUnityAdsLoadListener() {
                       @Override
                       public void onUnityAdsAdLoaded(String placementId) {
                           isInterstitialLoaded = true;
+                          isLoadingInterstitial = false;
                       }
 
                       @Override
                       public void onUnityAdsFailedToLoad(String placementId, UnityAds.UnityAdsLoadError error, String message) {
                           isInterstitialLoaded = false;
+                          isLoadingInterstitial = false;
                       }
-                  });
-              }
-
-              private void loadBannerAd() {
-                  runOnUiThread(() -> {
-                      if (bannerView != null) {
-                          bannerView.destroy();
-                      }
-                      bannerView = new BannerView(MainActivity.this, BANNER_PLACEMENT_ID, new UnityBannerSize(320, 50));
-                      bannerView.setListener(new BannerView.Listener());
-
-                      FrameLayout.LayoutParams bannerParams = new FrameLayout.LayoutParams(
-                              FrameLayout.LayoutParams.MATCH_PARENT,
-                              FrameLayout.LayoutParams.WRAP_CONTENT
-                      );
-                      bannerParams.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
-                      root.addView(bannerView, bannerParams);
-                      bannerView.load();
                   });
               }
 
@@ -367,7 +390,11 @@ jobs:
                                   }
                               });
                           } else {
-                              Toast.makeText(MainActivity.this, "Loading ad... Please wait 3 seconds", Toast.LENGTH_SHORT).show();
+                              Toast.makeText(
+                                      MainActivity.this,
+                                      "Loading ad... Please wait 3 seconds",
+                                      Toast.LENGTH_SHORT
+                              ).show();
                               loadRewardedAd();
 
                               new Handler(Looper.getMainLooper()).postDelayed(() -> {
@@ -424,8 +451,8 @@ jobs:
 
               @Override
               protected void onDestroy() {
-                  if (bannerView != null) {
-                      bannerView.destroy();
+                  if (bannerAd != null) {
+                      bannerAd.destroy();
                   }
                   if (webView != null) {
                       webView.destroy();
@@ -464,12 +491,4 @@ jobs:
         run: |
           set -e
           mkdir -p apk-output
-          cp app/build/outputs/apk/release/app-release.apk apk-output/WatchToEarn.apk
-
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: WatchToEarn-APK
-          path: apk-output/WatchToEarn.apk
-          if-no-files-found: error
-          
+          cp app/build/outpu
