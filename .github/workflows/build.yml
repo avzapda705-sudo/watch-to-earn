@@ -286,7 +286,6 @@ jobs:
 
                       @Override
                       public void onInitializationFailed(UnityAds.UnityAdsInitializationError error, String message) {
-                          // Retrying in 5 seconds
                           new Handler(Looper.getMainLooper()).postDelayed(() -> {
                               UnityAds.initialize(getApplicationContext(), UNITY_GAME_ID, TEST_MODE, this);
                           }, 5000);
@@ -328,19 +327,7 @@ jobs:
                           bannerView.destroy();
                       }
                       bannerView = new BannerView(MainActivity.this, BANNER_PLACEMENT_ID, new UnityBannerSize(320, 50));
-                      bannerView.setListener(new BannerView.IListener() {
-                          @Override
-                          public void onBannerLoaded(BannerView bannerAdView) {}
-
-                          @Override
-                          public void onBannerClick(BannerView bannerAdView) {}
-
-                          @Override
-                          public void onBannerFailedToLoad(BannerView bannerAdView, BannerErrorInfo errorInfo) {}
-
-                          @Override
-                          public void onBannerLeftApplication(BannerView bannerAdView) {}
-                      });
+                      bannerView.setListener(new BannerView.Listener());
 
                       FrameLayout.LayoutParams bannerParams = new FrameLayout.LayoutParams(
                               FrameLayout.LayoutParams.MATCH_PARENT,
