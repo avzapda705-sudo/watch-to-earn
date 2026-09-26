@@ -116,7 +116,7 @@ jobs:
 
                   <meta-data
                       android:name="com.google.android.gms.ads.APPLICATION_ID"
-                      android:value="ca-app-pub-5150845800087406~5053767077" />
+                      android:value="ca-app-pub-5150848800087406~5053767077" />
 
                   <activity
                       android:name=".MainActivity"
@@ -177,15 +177,15 @@ jobs:
               private boolean isLoadingRewarded = false;
               private boolean isLoadingInterstitial = false;
 
-              // Live Banner Ad ID
+              // 1. Live Banner Ad ID
               private static final String BANNER_AD_UNIT_ID =
                       "ca-app-pub-5150848800087406/8514535326";
 
-              // Live Rewarded Video ID
+              // 2. Live Rewarded Video ID
               private static final String REWARDED_AD_UNIT_ID =
                       "ca-app-pub-5150848800087406/3645352026";
 
-              // Live Interstitial Ad ID
+              // 3. Live Interstitial Ad ID
               private static final String INTERSTITIAL_AD_UNIT_ID =
                       "ca-app-pub-5150848800087406/1725676409";
 
