@@ -374,7 +374,12 @@ jobs:
         shell: bash
         run: |
           set -e
-          gradle assembleRelease --no-daemon
+
+          gradle wrapper --gradle-version 8.2.1 --distribution-type bin
+
+          chmod +x gradlew
+
+          ./gradlew assembleRelease --no-daemon
 
       - name: Verify APK
         shell: bash
