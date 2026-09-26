@@ -130,8 +130,8 @@ jobs:
                   applicationId "com.watchtoearn.app"
                   minSdk 24
                   targetSdk 35
-                  versionCode 17
-                  versionName "2.6"
+                  versionCode 19
+                  versionName "2.8"
               }
 
               compileOptions {
@@ -223,7 +223,7 @@ jobs:
 
               // Unity Ads Setup
               private static final String UNITY_GAME_ID = "800381847";
-              private static final boolean TEST_MODE = false; // Live mode (Test માટે true રાખી શકો છો)
+              private static final boolean TEST_MODE = false;
 
               private static final String BANNER_PLACEMENT = "BP_Banner_Android";
               private static final String REWARDED_PLACEMENT = "BP_Rewarded_Android";
@@ -307,10 +307,16 @@ jobs:
                       bottomBanner.setListener(new BannerView.IListener() {
                           @Override
                           public void onBannerLoaded(BannerView bannerAdView) {}
+
+                          @Override
+                          public void onBannerShown(BannerView bannerAdView) {}
+
                           @Override
                           public void onBannerClick(BannerView bannerAdView) {}
+
                           @Override
                           public void onBannerFailedToLoad(BannerView bannerAdView, BannerErrorInfo errorInfo) {}
+
                           @Override
                           public void onBannerLeftApplication(BannerView bannerView) {}
                       });
